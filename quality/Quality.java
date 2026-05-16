@@ -1,6 +1,6 @@
 package com.fomdev.awaken.quality;
 
-import com.fomdev.awaken.mobs.GeneratingMobTypes;
+import com.fomdev.awaken.gen.GeneratingMobTypes;
 
 public interface Quality
 {
