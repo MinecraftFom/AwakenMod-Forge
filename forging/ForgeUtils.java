@@ -25,6 +25,8 @@ public class ForgeUtils
 {
     private static final Map<ResourceLocation, UpgradeTier.CompoundTierContainer> registeredTiers = new HashMap<>();
 
+    public static final int defaultMaxForgingCounts = 6;
+
     // Public fields that announces default capabilities for the tiers
     // Including vanilla tiers
     // TODO: append custom tiers
@@ -237,6 +239,9 @@ public class ForgeUtils
         if (!(stack.getItem() instanceof ArmorItem item))
             throw new IllegalArgumentException("Invalid argument type: not an armor");
 
+        if (!NBTUtil.addForged(stack, 1))
+            return stack; // Makes sure it won't cause any errors
+
         UpgradeTier.TierModifierSlot slot = UpgradeTier.castSlot(stack.getItem());
 
         Map<UpgradeTier.TierModifierSlot, UpgradeTier.CompoundTierModifier<Double>>     armor;
@@ -291,6 +296,9 @@ public class ForgeUtils
                 UpgradeTier tier
             )
     {
+        if (!NBTUtil.addForged(stack, 1))
+            return stack; // Makes sure it won't cause any errors
+
         UpgradeTier.TierModifierSlot slot = UpgradeTier.castSlot(stack.getItem());
 
         Map<UpgradeTier.TierModifierSlot, UpgradeTier.CompoundTierModifier<Float>>   attack;

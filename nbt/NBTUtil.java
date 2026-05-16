@@ -1,5 +1,7 @@
 package com.fomdev.awaken.nbt;
 
+import com.fomdev.awaken.exp.EquipmentExperience;
+import com.fomdev.awaken.forging.ForgeUtils;
 import com.fomdev.awaken.quality.Quality;
 import com.fomdev.awaken.quality.QualityUtil;
 import net.minecraft.nbt.CompoundTag;
@@ -16,6 +18,7 @@ public class NBTUtil
     public static final String nbtAwakenLevelStorage   = "awakenedLevel";
     public static final String nbtEnchantValueStorage  = "awakenedEnchant";
     public static final String nbtExpValueStorage      = "awakenedExp";
+    public static final String nbtForgedValueStorage   = "awakenedForged";
     public static final String nbtQualityValueStorage  = "awakenedQuality";
 
     public static void addEnchantValue(
@@ -56,7 +59,7 @@ public class NBTUtil
 
         if (!expTag.contains("current")) expTag.putInt("current", 0);
         if (!expTag.contains("level")) expTag.putInt("level", 0);
-        if (!expTag.contains("max")) expTag.putInt("max", 0);
+        if (!expTag.contains("max")) expTag.putInt("max", EquipmentExperience.defaultInitialExperienceRequirement);
 
         int original = expTag.getInt("level");
         int result = switch (operation)
@@ -85,7 +88,7 @@ public class NBTUtil
 
         if (!expTag.contains("current")) expTag.putInt("current", 0);
         if (!expTag.contains("level")) expTag.putInt("level", 0);
-        if (!expTag.contains("max")) expTag.putInt("max", 0);
+        if (!expTag.contains("max")) expTag.putInt("max", EquipmentExperience.defaultInitialExperienceRequirement);
 
         int original = expTag.getInt("current");
         int result = switch (operation)
@@ -98,6 +101,43 @@ public class NBTUtil
         };
 
         expTag.putInt("current", result);
+    }
+
+    public static boolean addForged(
+            ItemStack stack,
+            int count
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+        if (!tag.contains(nbtForgedValueStorage))
+            tag.put(nbtForgedValueStorage, new CompoundTag());
+
+        CompoundTag forgeTag = tag.getCompound(nbtForgedValueStorage);
+
+        if (!forgeTag.contains("level")) forgeTag.putInt("level", 0);
+        if (!forgeTag.contains("max")) serializeMaxForgeLevel(stack, ForgeUtils.defaultMaxForgingCounts);
+
+        int result = forgeTag.getInt("level") + count;
+        if (result > forgeTag.getInt("max")) return false; // Makes sure it won't cause any error
+
+        forgeTag.putInt("level", result);
+        return true;
+    }
+
+    public static void addMaxForgeLevel(
+            ItemStack stack,
+            int count
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+
+        if (!tag.contains(nbtForgedValueStorage))
+            tag.put(nbtForgedValueStorage, new CompoundTag());
+
+        CompoundTag forgeTag = tag.getCompound(nbtForgedValueStorage);
+        int result = forgeTag.getInt("max") + count;
+
+        tag.putInt("max", result);
     }
 
     public static Float deserializeAwakenLevel(
@@ -181,6 +221,17 @@ public class NBTUtil
         return tag.getCompound(nbtNamespace);
     }
 
+    public static void refreshDamage(
+            ItemStack stack,
+            float factor
+    )
+    {
+        int damage = stack.getDamageValue();
+        int newDamage = (int) (damage * (1 + factor));
+
+        stack.setDamageValue(newDamage);
+    }
+
     public static void serializeAwakenLevel(
             LivingEntity entity,
             float level
@@ -189,6 +240,20 @@ public class NBTUtil
         CompoundTag tag = getModTag(entity);
 
         tag.putFloat(nbtAwakenLevelStorage, level);
+    }
+
+    public static void serializeMaxForgeLevel(
+            ItemStack stack,
+            int level
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+
+        if (!tag.contains(nbtForgedValueStorage))
+            tag.put(nbtForgedValueStorage, new CompoundTag());
+
+        CompoundTag forgeTag = tag.getCompound(nbtForgedValueStorage);
+        forgeTag.putInt("max", level);
     }
 
     public static void serializeQuality(
@@ -235,7 +300,8 @@ public class NBTUtil
 
     public static void updateExp(
             ItemStack stack,
-            int nextMax
+            float nextMaxFactor,
+            float rewardFactor
     )
     {
         int current = getCurrentExp(stack);
@@ -247,9 +313,10 @@ public class NBTUtil
         int newValue = current - max;
 
         addExpValue(stack, 1, 0);
-        setMaxExp(stack, nextMax);
+        setMaxExp(stack, (int) (max * nextMaxFactor));
 
         CompoundTag tag = getModTag(stack).getCompound(nbtExpValueStorage);
         tag.putInt("current", newValue);
+        refreshDamage(stack, rewardFactor);
     }
 }
