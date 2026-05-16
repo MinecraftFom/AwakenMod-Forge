@@ -8,11 +8,15 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.*;
 import net.minecraft.world.level.Level;
+import net.minecraftforge.event.level.BlockEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
+@Mod.EventBusSubscriber
 @ItemHolder(stream = false, namespace = AwakenRPG.MODID)
 @TabbedHolder
 public class AdditionalContent
@@ -42,4 +46,10 @@ public class AdditionalContent
             return this;
         }
     };
+
+    @SubscribeEvent
+    public static void stopTrample(BlockEvent.FarmlandTrampleEvent event)
+    {
+        event.cancel();
+    }
 }
