@@ -3,6 +3,7 @@ package com.fomdev.awaken.forging;
 import com.fomdev.awaken.init.Awaken;
 import com.fomdev.awaken.nbt.NBTUtil;
 import com.fomdev.flib.util.Suggested;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -45,7 +46,12 @@ public class ForgeUtils
                     UpgradeTier tier
             )
     {
-        return switch (UpgradeTier.castSlot(stack.getItem()))
+        UpgradeTier.TierModifierSlot slot = UpgradeTier.castSlot(stack.getItem());
+        if (slot == null)
+            return stack;
+        NBTUtil.putForgeTier(stack, tier);
+
+        return switch (slot)
         {
             case BOOT, CHEST, HEAD, LEGS -> forgeArmor(stack, tier);
             case AXE, BOW, HOE, PICK, SHIELD, SHOVE, SWORD -> forgeTool(stack, tier);
@@ -59,6 +65,29 @@ public class ForgeUtils
             )
     {
         return registeredTiers.get(location).tier();
+    }
+
+    @Nullable
+    public static UpgradeTier getTier
+            (
+                    String id
+            )
+    {
+        for (UpgradeTier.CompoundTierContainer container: registeredTiers.values())
+        {
+            if (container.tier().id().equals(id))
+                return container.tier();
+        }
+
+        return null;
+    }
+
+    public static String localize
+            (
+                    String id
+            )
+    {
+        return "tier."+id+".name";
     }
 
     public static void registerReprFor
@@ -236,13 +265,18 @@ public class ForgeUtils
                     UpgradeTier tier
             )
     {
+        UpgradeTier.TierModifierSlot slot = UpgradeTier.castSlot(stack.getItem());
+
+        if (slot == null)
+            return stack;
+
         if (!(stack.getItem() instanceof ArmorItem item))
             throw new IllegalArgumentException("Invalid argument type: not an armor");
 
         if (!NBTUtil.addForged(stack, 1))
             return stack; // Makes sure it won't cause any errors
 
-        UpgradeTier.TierModifierSlot slot = UpgradeTier.castSlot(stack.getItem());
+
 
         Map<UpgradeTier.TierModifierSlot, UpgradeTier.CompoundTierModifier<Double>>     armor;
         Map<UpgradeTier.TierModifierSlot, UpgradeTier.CompoundTierModifier<Integer>>    durability;
@@ -296,10 +330,13 @@ public class ForgeUtils
                 UpgradeTier tier
             )
     {
+        UpgradeTier.TierModifierSlot slot = UpgradeTier.castSlot(stack.getItem());
+
+        if (slot == null)
+            return stack;
+
         if (!NBTUtil.addForged(stack, 1))
             return stack; // Makes sure it won't cause any errors
-
-        UpgradeTier.TierModifierSlot slot = UpgradeTier.castSlot(stack.getItem());
 
         Map<UpgradeTier.TierModifierSlot, UpgradeTier.CompoundTierModifier<Float>>   attack;
         Map<UpgradeTier.TierModifierSlot, UpgradeTier.CompoundTierModifier<Integer>> durability;
@@ -346,11 +383,27 @@ public class ForgeUtils
 
         if ((fortune = tier.fortune()) != null)
         {
-            int original = stack.getEnchantmentLevel(Enchantments.BLOCK_FORTUNE);
-            original = original == 0? 1: original;
+            stack.addAttributeModifier(
+                    Attributes.LUCK,
+                    new AttributeModifier(
+                            UUID.randomUUID(),
+                            "_mainhand_fortune",
+                            constructNumber(fortune.get(slot).operation(), fortune.get(slot).value()),
+                            constructOperation(fortune.get(slot).operation())
+                    ),
+                    EquipmentSlot.MAINHAND
+            );
 
-            int result = (int) (directCalculateFloat(original, fortune.get(slot).value(), fortune.get(slot).operation()) / 5);
-            stack.enchant(Enchantments.BLOCK_FORTUNE, result);
+            stack.addAttributeModifier(
+                    Attributes.LUCK,
+                    new AttributeModifier(
+                            UUID.randomUUID(),
+                            "_offhand_fortune",
+                            constructNumber(fortune.get(slot).operation(), fortune.get(slot).value()),
+                            constructOperation(fortune.get(slot).operation())
+                    ),
+                    EquipmentSlot.OFFHAND
+            );
         }
 
         if ((speed = tier.speed()) != null)
