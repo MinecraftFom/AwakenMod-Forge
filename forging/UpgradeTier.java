@@ -61,11 +61,11 @@ public interface UpgradeTier {
                 case FEET -> TierModifierSlot.BOOT;
                 case HEAD -> TierModifierSlot.HEAD;
                 case LEGS -> TierModifierSlot.LEGS;
-                default -> throw new IllegalArgumentException("Invalid item passed in");
+                default -> null;
             };
         }
 
-        throw new IllegalArgumentException("Invalid item passed in");
+        return null;
     }
 
     class StreamTierBuilder
