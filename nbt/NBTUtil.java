@@ -2,9 +2,12 @@ package com.fomdev.awaken.nbt;
 
 import com.fomdev.awaken.exp.EquipmentExperience;
 import com.fomdev.awaken.forging.ForgeUtils;
+import com.fomdev.awaken.forging.UpgradeTier;
 import com.fomdev.awaken.quality.Quality;
 import com.fomdev.awaken.quality.QualityUtil;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -221,6 +224,22 @@ public class NBTUtil
         return tag.getCompound(nbtNamespace);
     }
 
+    public static void putForgeTier(
+            ItemStack stack,
+            UpgradeTier tier
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+        if (!tag.contains(nbtForgedValueStorage))
+            tag.put(nbtForgedValueStorage, new CompoundTag());
+
+        CompoundTag forgeTag = tag.getCompound(nbtForgedValueStorage);
+        if (!forgeTag.contains("tiers"))
+            forgeTag.put("tiers", new ListTag());
+
+        forgeTag.getList("tiers", 8).add(8, StringTag.valueOf(tier.id()));
+    }
+
     public static void refreshDamage(
             ItemStack stack,
             float factor
@@ -270,6 +289,16 @@ public class NBTUtil
         if (qualityLocation == null) throw new IllegalStateException("Illegal quality: not registered");
 
         tag.getCompound(nbtQualityValueStorage).putString("id", qualityLocation.toString());
+    }
+
+    public static void setLores(
+            ItemStack stack,
+            String lore
+    )
+    {
+        CompoundTag tag = stack.getOrCreateTagElement("display");
+        ListTag lores = tag.getList("Lore", 8);
+        lores.add(8, StringTag.valueOf(lore));
     }
 
     public static void setMaxDamage(
