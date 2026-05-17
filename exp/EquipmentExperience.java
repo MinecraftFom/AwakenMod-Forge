@@ -85,8 +85,11 @@ public class EquipmentExperience
     {
         Player player = event.getPlayer();
         ItemStack stack = player.getUseItem(); // Gets the using item
+        UpgradeTier.TierModifierSlot slot = UpgradeTier.castSlot(stack.getItem());
+        if (slot == null)
+            return;
 
-        switch (UpgradeTier.castSlot(stack.getItem()))
+        switch (slot)
         {
             case AXE, PICK, SHOVE ->
             {
@@ -102,8 +105,11 @@ public class EquipmentExperience
     {
         Player player = event.getEntity();
         ItemStack stack = player.getUseItem(); // Gets the using item
+        UpgradeTier.TierModifierSlot slot = UpgradeTier.castSlot(stack.getItem());
+        if (slot == null)
+            return;
 
-        switch (UpgradeTier.castSlot(stack.getItem()))
+        switch (slot)
         {
             case AXE, BOW, SWORD ->
             {
