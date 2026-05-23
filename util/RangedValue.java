@@ -17,9 +17,11 @@ public class RangedValue
     @Override
     public boolean equals(Object obj)
     {
-        if (!(obj instanceof Number num))
-            return false;
+        if (obj instanceof Number num)
+            return min <= num.doubleValue() && num.doubleValue() <= max;
+        if (obj instanceof RangedValue rv)
+            return (rv.min <= min && max <= rv.max) || (min <= rv.min && rv.max <= max);
 
-        return min <= num.doubleValue() && num.doubleValue() <= max;
+        return false;
     }
 }
