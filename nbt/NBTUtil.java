@@ -3,13 +3,14 @@ package com.fomdev.awaken.nbt;
 import com.fomdev.awaken.exp.EquipmentExperience;
 import com.fomdev.awaken.forging.ForgeUtils;
 import com.fomdev.awaken.forging.UpgradeTier;
+import com.fomdev.awaken.init.Awaken;
 import com.fomdev.awaken.quality.Quality;
 import com.fomdev.awaken.quality.QualityUtil;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 
 import javax.annotation.Nullable;
@@ -89,9 +90,10 @@ public class NBTUtil
 
         CompoundTag expTag = tag.getCompound(nbtExpValueStorage);
 
+        Quality quality = NBTUtil.deserializeQuality(stack);
         if (!expTag.contains("current")) expTag.putInt("current", 0);
         if (!expTag.contains("level")) expTag.putInt("level", 0);
-        if (!expTag.contains("max")) expTag.putInt("max", EquipmentExperience.defaultInitialExperienceRequirement);
+        if (!expTag.contains("max")) expTag.putInt("max", quality == null? EquipmentExperience.defaultInitialExperienceRequirement: quality.maxUpgradeLevel());
 
         int original = expTag.getInt("current");
         int result = switch (operation)
@@ -144,7 +146,7 @@ public class NBTUtil
     }
 
     public static Float deserializeAwakenLevel(
-            LivingEntity entity
+            Entity entity
     )
     {
         CompoundTag tag = getModTag(entity);
@@ -163,9 +165,11 @@ public class NBTUtil
         CompoundTag tag = getModTag(stack);
 
         if (!tag.contains(nbtQualityValueStorage)) return null;
-        if (tag.get("id") == null) return null;
+        CompoundTag qualityTag = tag.getCompound(nbtQualityValueStorage);
 
-        return QualityUtil.getQuality(ResourceLocation.parse(tag.getString("id")));
+        if (!qualityTag.contains("id")) return null;
+
+        return QualityUtil.getQuality(ResourceLocation.parse(qualityTag.getString("id")));
     }
 
     public static int getCurrentExp(
@@ -202,7 +206,7 @@ public class NBTUtil
     }
 
     public static CompoundTag getModTag(
-            LivingEntity entity
+            Entity entity
     )
     {
         CompoundTag tag = entity.getPersistentData();
@@ -252,7 +256,7 @@ public class NBTUtil
     }
 
     public static void serializeAwakenLevel(
-            LivingEntity entity,
+            Entity entity,
             float level
     )
     {
@@ -324,28 +328,33 @@ public class NBTUtil
         if (!tag.contains(nbtExpValueStorage))
             addExpValue(stack, 0, 0);
 
-        tag.putInt("max", exp);
+        tag.getCompound(nbtExpValueStorage).putInt("max", exp);
     }
 
     public static void updateExp(
             ItemStack stack,
-            float nextMaxFactor,
             float rewardFactor
     )
     {
         int current = getCurrentExp(stack);
         int max     = getMaxExp(stack);
+        Quality quality = deserializeQuality(stack);
+        float nextMaxFactor = quality == null? EquipmentExperience.defaultMaxExperienceFactor: quality.factor();
 
-        if (current < max)
-            return;
+        while (current >= max)
+        {
+            int newValue = current - max;
 
-        int newValue = current - max;
+            addExpValue(stack, max, 1);
+            addExpLevel(stack, 1, 0);
+            setMaxExp(stack, (int) (max * nextMaxFactor));
 
-        addExpValue(stack, 1, 0);
-        setMaxExp(stack, (int) (max * nextMaxFactor));
+            CompoundTag tag = getModTag(stack).getCompound(nbtExpValueStorage);
+            tag.putInt("current", newValue);
+            refreshDamage(stack, rewardFactor);
 
-        CompoundTag tag = getModTag(stack).getCompound(nbtExpValueStorage);
-        tag.putInt("current", newValue);
-        refreshDamage(stack, rewardFactor);
+            current = getCurrentExp(stack);
+            max     = getMaxExp(stack);
+        }
     }
 }
