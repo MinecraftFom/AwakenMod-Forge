@@ -16,7 +16,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-@Mod.EventBusSubscriber
 @ItemHolder(stream = false, namespace = AwakenRPG.MODID)
 @TabbedHolder
 public class AdditionalContent
@@ -30,26 +29,12 @@ public class AdditionalContent
 
     @TabbedHolder.Tabbed
     @ItemHolder.Hold
-    public static AbstractItem sponsorItem = new AbstractItem("modic_m.sponsor.lol")
+    public static AbstractItem sponsorItem = AbstractItem.of("modic_m.sponsor.lol",  new Item(new Item.Properties())
     {
         @Override
-        public @NotNull AbstractItem build()
+        public void appendHoverText(ItemStack p_41421_, @Nullable Level p_41422_, List<Component> p_41423_, TooltipFlag p_41424_)
         {
-            this.repr =  new Item(new Item.Properties()) {
-                @Override
-                public void appendHoverText(ItemStack p_41421_, @Nullable Level p_41422_, List<Component> p_41423_, TooltipFlag p_41424_)
-                {
-                    p_41423_.add(Component.literal("Oh piggod! \n Modic_M no money no kill me \n Modic_M lll i kill you hahaha lololo"));
-                }
-            };
-
-            return this;
+            p_41423_.add(Component.literal("Oh piggod! \n Modic_M no money no kill me \n Modic_M lll i kill you hahaha lololo"));
         }
-    };
-
-    @SubscribeEvent
-    public static void stopTrample(BlockEvent.FarmlandTrampleEvent event)
-    {
-        event.cancel();
-    }
+    });
 }
