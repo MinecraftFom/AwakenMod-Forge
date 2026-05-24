@@ -7,7 +7,7 @@ import com.fomdev.awaken.init.AwakenRPG;
 import com.fomdev.awaken.nbt.NBTUtil;
 import com.fomdev.awaken.quality.Quality;
 import com.fomdev.awaken.quality.QualityUtil;
-import com.fomdev.awaken.util.ColorUtil;
+import com.fomdev.flib.util.ColorUtil;
 import com.mojang.datafixers.util.Either;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
