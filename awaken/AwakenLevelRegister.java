@@ -1,7 +1,9 @@
 package com.fomdev.awaken.awaken;
 
 import com.fomdev.awaken.event.RegisterEvent;
+import com.fomdev.awaken.init.Awaken;
 import com.fomdev.awaken.init.AwakenContent;
+import com.fomdev.awaken.init.AwakenRPG;
 import com.fomdev.flib.util.Suggested;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
@@ -9,9 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLConstructModEvent;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Mod.EventBusSubscriber
+@Mod.EventBusSubscriber(modid = AwakenRPG.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class AwakenLevelRegister
 {
     // Injected a new registry event for awaken levels (WILL FREEZE AFTER CALLING!!!)
@@ -69,17 +69,26 @@ public class AwakenLevelRegister
 //        if (frozenMap == null)
 //            throw new IllegalStateException("Current state: registration. You have no access to this method until the registration freeze take place");
 
+        if (sortedFrozenCache.isEmpty())
+            return null;
+
         int minCoords = 0;
         int maxCoords = sortedFrozenCache.size() - 1;
 
-        AwakenLevel result = null;
+        int resultCoords = 0;
         boolean found = false;
         while (!found)
         {
             int centerCoords = minCoords + (maxCoords - minCoords) / 2;
-            if (centerCoords == 0 || centerCoords == sortedFrozenCache.size() /* Adding this condition to check if the centerCoords has been out of bound */)
+            if (centerCoords == 0)
+            {
+                found = true;
+                continue;
+            }
+            if (centerCoords == sortedFrozenCache.size() /* Adding this condition to check if the centerCoords has been out of bound */)
             {
                 found = true; // Nothing match, breaks loop
+                resultCoords = sortedFrozenCache.size() - 1;
                 continue;
             }
 
@@ -95,7 +104,7 @@ public class AwakenLevelRegister
             else if (lastLevel.min() <= level && level <= centerLevel.min())
             {
                 found = true;
-                result = lastLevel;
+                resultCoords = lastCoords;
             }
             else if (lastLevel.min() > level)
             {
@@ -103,7 +112,7 @@ public class AwakenLevelRegister
             }
         }
 
-        return result;
+        return sortedFrozenCache.get(resultCoords);
     }
 
     public static AwakenLevel register(AwakenLevel level, String modid)
@@ -113,20 +122,24 @@ public class AwakenLevelRegister
         if (registeredLevels.containsKey(location))
             throw new IllegalArgumentException("Duplicated registry location: " + location);
 
+        if (frozenMap != null)
+            throw new IllegalStateException("Freezed registries: unable to register");
+
         return registeredLevels.put(location, level);
     }
 
     @SubscribeEvent
-    public static void onFmlCommonSetup(FMLConstructModEvent event)
+    public static void onFmlCommonSetup(FMLCommonSetupEvent event)
     {
+        Awaken.LOGGER.info("Freezing register on FMLCommonSetup");
         MinecraftForge.EVENT_BUS.fire(new RegisterEvent(AWAKEN_LEVEL));
 
-        frozeMap();
         concludeSortedData();
     }
 
     private static void concludeSortedData()
     {
+        frozeMap();
         if (frozenMap == null)
             // LoL
             throw new IllegalStateException("Currently, registration HAS NOT finished. But wait... are you using reflection? I'm NOT supposing to see this happen. Or are you using mixin? Just please, STOP! I DON'T WANT TO BE BOTHERED!!!");
