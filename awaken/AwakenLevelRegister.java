@@ -12,12 +12,10 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Mod.EventBusSubscriber(modid = AwakenRPG.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
@@ -66,53 +64,66 @@ public class AwakenLevelRegister
     @Nullable
     public static AwakenLevel getLevel(double level)
     {
-//        if (frozenMap == null)
-//            throw new IllegalStateException("Current state: registration. You have no access to this method until the registration freeze take place");
+        if (frozenMap == null)
+            throw new IllegalStateException("Current state: registration. You have no access to this method until the registration freeze take place");
 
         if (sortedFrozenCache.isEmpty())
             return null;
 
-        int minCoords = 0;
-        int maxCoords = sortedFrozenCache.size() - 1;
+//        int minCoords = 0;
+//        int maxCoords = sortedFrozenCache.size() - 1;
+//
+//        int resultCoords = 0;
+//        boolean found = false;
+//        while (!found && minCoords <= maxCoords)
+//        {
+//            int centerCoords = minCoords + (maxCoords - minCoords) / 2;
+//            if (centerCoords == 0)
+//            {
+//                found = true;
+//                continue;
+//            }
+//            if (centerCoords == sortedFrozenCache.size() - 1/* Adding this condition to check if the centerCoords has been out of bound */)
+//            {
+//                found = true; // Nothing match, breaks loop
+//                resultCoords = sortedFrozenCache.size() - 1;
+//                continue;
+//            }
+//
+//            int lastCoords = centerCoords - 1;
+//
+//            AwakenLevel centerLevel = sortedFrozenCache.get(centerCoords);
+//            AwakenLevel lastLevel = sortedFrozenCache.get(lastCoords);
+//
+//            if (centerLevel.min() < level)
+//            {
+//                minCoords = centerCoords + 1;
+//            }
+//            else if (lastLevel.min() <= level && level <= centerLevel.min())
+//            {
+//                found = true;
+//                resultCoords = lastCoords;
+//            }
+//            else if (lastLevel.min() > level)
+//            {
+//                maxCoords = centerCoords - 1;
+//            }
+//        }
 
-        int resultCoords = 0;
-        boolean found = false;
-        while (!found)
+//        return sortedFrozenCache.get(resultCoords);
+
+        for (int i = 0; i < sortedFrozenCache.size(); i++)
         {
-            int centerCoords = minCoords + (maxCoords - minCoords) / 2;
-            if (centerCoords == 0)
-            {
-                found = true;
-                continue;
-            }
-            if (centerCoords == sortedFrozenCache.size() /* Adding this condition to check if the centerCoords has been out of bound */)
-            {
-                found = true; // Nothing match, breaks loop
-                resultCoords = sortedFrozenCache.size() - 1;
-                continue;
-            }
+            if (i == sortedFrozenCache.size() - 1)
+                return sortedFrozenCache.get(i);
 
-            int lastCoords = centerCoords - 1;
-
-            AwakenLevel centerLevel = sortedFrozenCache.get(centerCoords);
-            AwakenLevel lastLevel = sortedFrozenCache.get(lastCoords);
-
-            if (centerLevel.min() < level)
-            {
-                minCoords = centerCoords + 1;
-            }
-            else if (lastLevel.min() <= level && level <= centerLevel.min())
-            {
-                found = true;
-                resultCoords = lastCoords;
-            }
-            else if (lastLevel.min() > level)
-            {
-                maxCoords = centerCoords - 1;
-            }
+            AwakenLevel curr = sortedFrozenCache.get(i);
+            AwakenLevel next = sortedFrozenCache.get(i + 1);
+            if (curr.min() <= level && level <= next.min())
+                return curr;
         }
 
-        return sortedFrozenCache.get(resultCoords);
+        return null;
     }
 
     public static AwakenLevel register(AwakenLevel level, String modid)
@@ -204,5 +215,11 @@ public class AwakenLevelRegister
     private static void frozeMap()
     {
         frozenMap = new HashMap<>(registeredLevels);
+    }
+
+    @ApiStatus.Internal
+    public static void printCaches()
+    {
+        Awaken.LOGGER.info("SORTED: " + Arrays.toString(sortedFrozenCache.stream().map(v -> v.id() + v.min()).toArray()));
     }
 }
