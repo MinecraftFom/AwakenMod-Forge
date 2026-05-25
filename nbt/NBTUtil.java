@@ -1,29 +1,39 @@
 package com.fomdev.awaken.nbt;
 
+import com.fomdev.awaken.enchanting.Alignment;
+import com.fomdev.awaken.enchanting.Aspect;
+import com.fomdev.awaken.enchanting.EnchantmentRegister;
 import com.fomdev.awaken.exp.EquipmentExperience;
 import com.fomdev.awaken.forging.ForgeUtils;
 import com.fomdev.awaken.forging.UpgradeTier;
-import com.fomdev.awaken.init.Awaken;
 import com.fomdev.awaken.quality.Quality;
 import com.fomdev.awaken.quality.QualityUtil;
+import com.fomdev.awaken.reinforce.ReinforcementLevels;
+import com.fomdev.awaken.title.Title;
+import com.fomdev.awaken.title.TitleRegister;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
 
 public class NBTUtil
 {
     private static final String nbtNamespace = "awakened";
 
-    public static final String nbtAwakenLevelStorage   = "awakenedLevel";
-    public static final String nbtEnchantValueStorage  = "awakenedEnchant";
-    public static final String nbtExpValueStorage      = "awakenedExp";
-    public static final String nbtForgedValueStorage   = "awakenedForged";
-    public static final String nbtQualityValueStorage  = "awakenedQuality";
+    public static final String nbtAwakenLevelStorage    = "awakenedLevel";
+    public static final String nbtEnchantmentStorage    = "awakenedEnchantments";
+    public static final String nbtEnchantValueStorage   = "awakenedEnchantable";
+    public static final String nbtExpValueStorage       = "awakenedExp";
+    public static final String nbtForgedValueStorage    = "awakenedForged";
+    public static final String nbtReinforceValueStorage = "awakenedReinforce";
+    public static final String nbtTitleValueStorage     = "awakenedTitle";
+    public static final String nbtQualityValueStorage   = "awakenedQuality";
 
     public static void addEnchantValue(
             ItemStack stack,
@@ -145,8 +155,34 @@ public class NBTUtil
         tag.putInt("max", result);
     }
 
+    public static void addReinforceValue(
+            ItemStack stack,
+            float value,
+            int operation
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+        if (!tag.contains(nbtReinforceValueStorage))
+            serializeReinforce(stack, ReinforcementLevels.NORMAL);
+
+        CompoundTag reinforceTag = tag.getCompound(nbtReinforceValueStorage);
+        if (!tag.contains("current")) reinforceTag.putInt("current", 0);
+
+        float original = reinforceTag.getFloat("current");
+        float result = switch (operation)
+        {
+            case 0 -> original + value;
+            case 1 -> original - value;
+            case 2 -> original * value;
+            case 3 -> original / value;
+            default -> throw new IllegalArgumentException("Illegal argument: should be 0 ~ 3, got " + operation);
+        };
+
+        reinforceTag.putFloat("current", result);
+    }
+
     public static Float deserializeAwakenLevel(
-            Entity entity
+            Player entity
     )
     {
         CompoundTag tag = getModTag(entity);
@@ -172,6 +208,92 @@ public class NBTUtil
         return QualityUtil.getQuality(ResourceLocation.parse(qualityTag.getString("id")));
     }
 
+    public static ReinforcementLevels deserializeReinforcement(
+            ItemStack stack
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+
+        if (!tag.contains(nbtReinforceValueStorage)) return null;
+        CompoundTag reinforceTag = tag.getCompound(nbtReinforceValueStorage);
+
+        if (!reinforceTag.contains("level")) reinforceTag.putInt("level", 0);
+
+        return ReinforcementLevels.getLevel(reinforceTag.getInt("level"));
+    }
+
+    public static Title deserializeTitle(
+            ItemStack stack
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+
+        if (!tag.contains(nbtTitleValueStorage)) return null;
+        CompoundTag titleTag = tag.getCompound(nbtTitleValueStorage);
+
+        if (!titleTag.contains("title")) return null;
+
+        return TitleRegister.getTitle(ResourceLocation.parse(titleTag.getString("title")));
+    }
+
+    public static Alignment.AlignmentProvider[] getAlignments(
+            ItemStack stack
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+        if (!tag.contains(nbtEnchantmentStorage))
+            return new Alignment.AlignmentProvider[]{};
+
+        CompoundTag enchantTag = tag.getCompound(nbtEnchantmentStorage);
+        if (!tag.contains("alignment"))
+            return new Alignment.AlignmentProvider[]{};
+
+        CompoundTag alignmentTag = tag.getCompound("alignment");
+
+        List<Alignment.AlignmentProvider> providers = new ArrayList<>();
+        for (String key: alignmentTag.getAllKeys())
+        {
+            ResourceLocation location = ResourceLocation.parse(key);
+            Alignment alignment = EnchantmentRegister.getAlignment(location);
+            if (alignment == null)
+                continue;
+
+            int level = alignmentTag.getInt(key);
+            providers.add(new Alignment.AlignmentProvider(alignment, level));
+        }
+
+        return providers.toArray(new Alignment.AlignmentProvider[]{});
+    }
+
+    public static Aspect.AspectProvider[] getAspects(
+            ItemStack stack
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+        if (!tag.contains(nbtEnchantmentStorage))
+            return new Aspect.AspectProvider[]{};
+
+        CompoundTag enchantTag = tag.getCompound(nbtEnchantmentStorage);
+        if (!tag.contains("aspect"))
+            return new Aspect.AspectProvider[]{};
+
+        CompoundTag aspectTag = tag.getCompound("aspect");
+
+        List<Aspect.AspectProvider> providers = new ArrayList<>();
+        for (String key: aspectTag.getAllKeys())
+        {
+            ResourceLocation location = ResourceLocation.parse(key);
+            Aspect aspect = EnchantmentRegister.getAspect(location);
+            if (aspect == null)
+                continue;
+
+            int level = aspectTag.getInt(key);
+            providers.add(Aspect.of(level, aspect));
+        }
+
+        return providers.toArray(new Aspect.AspectProvider[]{});
+    }
+
     public static int getCurrentExp(
             ItemStack stack
     )
@@ -194,6 +316,17 @@ public class NBTUtil
         return tag.getCompound(nbtExpValueStorage).getInt("level");
     }
 
+    public static float getCurrentReinforce(
+            ItemStack stack
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+        if (!tag.contains(nbtReinforceValueStorage))
+            addReinforceValue(stack, 0.0F, 0);
+
+        return tag.getCompound(nbtReinforceValueStorage).getFloat("current");
+    }
+
     public static int getMaxExp(
             ItemStack stack
     )
@@ -206,7 +339,7 @@ public class NBTUtil
     }
 
     public static CompoundTag getModTag(
-            Entity entity
+            Player entity
     )
     {
         CompoundTag tag = entity.getPersistentData();
@@ -226,6 +359,60 @@ public class NBTUtil
             tag.put(nbtNamespace, new CompoundTag());
 
         return tag.getCompound(nbtNamespace);
+    }
+
+    public static void putEnchantmentAlignment(
+            ItemStack stack,
+            Alignment.AlignmentProvider provider
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+        if (!tag.contains(nbtEnchantmentStorage))
+            tag.put(nbtEnchantmentStorage, new CompoundTag());
+
+        CompoundTag enchantTag = tag.getCompound(nbtEnchantmentStorage);
+        if (!tag.contains("alignment"))
+            tag.put("alignment", new CompoundTag());
+
+        CompoundTag alignmentTag = enchantTag.getCompound("alignment");
+        ResourceLocation alignment = EnchantmentRegister.getAlignmentId(provider.alignment());
+        if (alignment == null)
+            return;
+
+        int amount = provider.level();
+
+        if (!alignmentTag.contains(alignment.toString()))
+            alignmentTag.putInt(alignment.toString(), 0);
+
+        int count = alignmentTag.getInt(alignment.toString()) + amount;
+        alignmentTag.putInt(alignment.toString(), count);
+    }
+
+    public static void putEnchantmentAspect(
+            ItemStack stack,
+            Aspect.AspectProvider provider
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+        if (!tag.contains(nbtEnchantmentStorage))
+            tag.put(nbtEnchantmentStorage, new CompoundTag());
+
+        CompoundTag enchantTag = tag.getCompound(nbtEnchantmentStorage);
+        if (!tag.contains("aspect"))
+            tag.put("aspect", new CompoundTag());
+
+        CompoundTag aspectTag = enchantTag.getCompound("aspect");
+        ResourceLocation aspect = EnchantmentRegister.getAspectId(provider.aspect());
+        if (aspect == null)
+            return;
+
+        int amount = provider.amount();
+
+        if (!aspectTag.contains(aspect.toString()))
+            aspectTag.putInt(aspect.toString(), 0);
+
+        int count = aspectTag.getInt(aspect.toString()) + amount;
+        aspectTag.putInt(aspect.toString(), count);
     }
 
     public static void putForgeTier(
@@ -256,7 +443,7 @@ public class NBTUtil
     }
 
     public static void serializeAwakenLevel(
-            Entity entity,
+            Player entity,
             float level
     )
     {
@@ -277,6 +464,39 @@ public class NBTUtil
 
         CompoundTag forgeTag = tag.getCompound(nbtForgedValueStorage);
         forgeTag.putInt("max", level);
+    }
+
+    public static void serializeReinforce(
+            ItemStack stack,
+            ReinforcementLevels level
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+
+        if (!tag.contains(nbtReinforceValueStorage))
+            tag.put(nbtReinforceValueStorage, new CompoundTag());
+
+        CompoundTag reinforceTag = tag.getCompound(nbtReinforceValueStorage);
+        int value = level.getLevel();
+
+        reinforceTag.putInt("level", value);
+    }
+
+    public static void serializeTitle(
+            ItemStack stack,
+            Title title
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+
+        if (!tag.contains(nbtTitleValueStorage))
+            tag.put(nbtTitleValueStorage, new CompoundTag());
+
+        CompoundTag titleTag = tag.getCompound(nbtTitleValueStorage);
+        ResourceLocation location = TitleRegister.getTitleId(title);
+        if (location == null) throw new IllegalStateException("Illegal title: not registered");
+
+        titleTag.putString("title", location.toString());
     }
 
     public static void serializeQuality(
