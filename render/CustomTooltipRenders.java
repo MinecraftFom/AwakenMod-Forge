@@ -7,6 +7,7 @@ import com.fomdev.awaken.init.AwakenRPG;
 import com.fomdev.awaken.nbt.NBTUtil;
 import com.fomdev.awaken.quality.Quality;
 import com.fomdev.awaken.quality.QualityUtil;
+import com.fomdev.awaken.register.item.FunctionalItems;
 import com.fomdev.flib.util.ColorUtil;
 import com.mojang.datafixers.util.Either;
 import net.minecraft.ChatFormatting;
@@ -23,6 +24,18 @@ import java.awt.*;
 @Mod.EventBusSubscriber(modid = AwakenRPG.MODID)
 public class CustomTooltipRenders
 {
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onRenderAwakenLevel(RenderTooltipEvent.GatherComponents event)
+    {
+        ItemStack stack = event.getItemStack();
+        if (stack.getItem() == FunctionalItems.AWAKEN_LEVEL_DETECTOR.get())
+        {
+            event.getTooltipElements().add(1, Either.left(Component.translatable("tooltip.toss_to_use.msg").withStyle(ChatFormatting.AQUA)));
+            event.getTooltipElements().add(2, Either.left(Component.translatable("tooltip.toss_all_to_eliminate.msg").withStyle(ChatFormatting.AQUA)));
+            event.getTooltipElements().add(3, Either.left(Component.translatable("tooltip.debug_use.warning").withStyle(ChatFormatting.RED)));
+        }
+    }
+
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onRenderExpAndLevel(RenderTooltipEvent.GatherComponents event)
     {
