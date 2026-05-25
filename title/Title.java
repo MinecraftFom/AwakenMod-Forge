@@ -9,6 +9,7 @@ public interface Title
 {
     String id();
     CompoundAttribute[] attrs(float factor);
+    int additionalDurability();
 
     record CompoundAttribute
             (
@@ -20,6 +21,7 @@ public interface Title
 
     static Title of(
             String id,
+            int additionalDurability,
             Function<Float, CompoundAttribute[]> procedure
     )
     {
@@ -29,6 +31,12 @@ public interface Title
             public String id()
             {
                 return id;
+            }
+
+            @Override
+            public int additionalDurability()
+            {
+                return additionalDurability;
             }
 
             @Override
