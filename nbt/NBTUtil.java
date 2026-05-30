@@ -17,6 +17,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
@@ -199,6 +200,38 @@ public class NBTUtil
         return tag.getFloat(nbtAwakenLevelStorage);
     }
 
+    public static int deserializeForgeLevel(
+            ItemStack stack
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+
+        if (!tag.contains(nbtForgedValueStorage))
+            return 0;
+
+        CompoundTag forgeTag = tag.getCompound(nbtForgedValueStorage);
+        if (!forgeTag.contains("level"))
+            return 0;
+
+        return forgeTag.getInt("level");
+    }
+
+    public static int deserializeMaxForgeLevel(
+            ItemStack stack
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+
+        if (!tag.contains(nbtForgedValueStorage))
+            return 0;
+
+        CompoundTag forgeTag = tag.getCompound(nbtForgedValueStorage);
+        if (!forgeTag.contains("max"))
+            return 0;
+
+        return forgeTag.getInt("max");
+    }
+
     @Nullable
     public static Quality deserializeQuality(
             ItemStack stack
@@ -377,6 +410,34 @@ public class NBTUtil
         return tag.getFloat(nbtEfficiencyCapability);
     }
 
+    public static List<UpgradeTier> getForgeTiers(
+            ItemStack stack
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+
+        if (!tag.contains(nbtForgedValueStorage))
+            return List.of();
+
+        ListTag forgedTiers = tag.getCompound(nbtForgedValueStorage).getList("tiers", 8);
+        List<UpgradeTier> result = new ArrayList<>();
+
+        for (Tag ftag: forgedTiers)
+        {
+            if (!(ftag instanceof StringTag stag))
+                continue;
+
+            ResourceLocation location = ResourceLocation.parse(stag.getAsString());
+            UpgradeTier tier = ForgeUtils.getTier(location);
+            if (tier == null)
+                continue;
+
+            result.add(tier);
+        }
+
+        return result;
+    }
+
     public static int getMaxExp(
             ItemStack stack
     )
@@ -478,7 +539,11 @@ public class NBTUtil
         if (!forgeTag.contains("tiers"))
             forgeTag.put("tiers", new ListTag());
 
-        forgeTag.getList("tiers", 8).add(StringTag.valueOf(tier.id()));
+        ResourceLocation location = ForgeUtils.getID(tier);
+        if (location == null)
+            return;
+
+        forgeTag.getList("tiers", 8).add(StringTag.valueOf(location.toString()));
     }
     
     public static void putPrefix(

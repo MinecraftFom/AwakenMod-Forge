@@ -163,6 +163,7 @@ public class TitleRegister
                     stack,
                     attr.attr(),
                     quality.id() + attr.attr().toString(),
+                    "titleutil",
                     attr.amount() * quality.factor(),
                     attr.operation(),
                     stack.getEquipmentSlot()

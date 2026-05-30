@@ -1,8 +1,11 @@
 package com.fomdev.awaken.render;
 
+import com.fomdev.awaken.enchanting.Alignment;
+import com.fomdev.awaken.enchanting.Aspect;
+import com.fomdev.awaken.enchanting.EnchantmentRegister;
 import com.fomdev.awaken.exp.EquipmentExperience;
+import com.fomdev.awaken.forging.ForgeUtils;
 import com.fomdev.awaken.forging.UpgradeTier;
-import com.fomdev.awaken.init.Awaken;
 import com.fomdev.awaken.init.AwakenRPG;
 import com.fomdev.awaken.nbt.NBTUtil;
 import com.fomdev.awaken.quality.Quality;
@@ -20,12 +23,61 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.awt.*;
-import java.util.ArrayList;
 import java.util.List;
 
 @Mod.EventBusSubscriber(modid = AwakenRPG.MODID)
 public class CustomTooltipRenders
 {
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onRenderAlignments(RenderTooltipEvent.GatherComponents event)
+    {
+        ItemStack stack = event.getItemStack();
+
+        List<Alignment.AlignmentProvider> alignments = List.of(NBTUtil.getAlignments(stack));
+        if (alignments.isEmpty())
+            return;
+
+        int index = event.getTooltipElements().indexOf(Either.left(Component.EMPTY));
+
+        for (Alignment.AlignmentProvider provider: alignments)
+        {
+            event.getTooltipElements().add(index, Either.left(
+                    Component.translatable(
+                            EnchantmentRegister.localizeAspect(provider.alignment().id())
+                    ).append(
+                            Component.literal(": " + provider.level())
+                    ).withStyle(
+                            Style.EMPTY.withColor(ColorUtil.colorToTextColor(provider.alignment().color()))
+                    )
+            ));
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onRenderAspects(RenderTooltipEvent.GatherComponents event)
+    {
+        ItemStack stack = event.getItemStack();
+
+        List<Aspect.AspectProvider> aspects = List.of(NBTUtil.getAspects(stack));
+        if (aspects.isEmpty())
+            return;
+
+        int index = event.getTooltipElements().indexOf(Either.left(Component.EMPTY));
+
+        for (Aspect.AspectProvider provider: aspects)
+        {
+            event.getTooltipElements().add(index, Either.left(
+                    Component.translatable(
+                            EnchantmentRegister.localizeAspect(provider.aspect().id())
+                    ).append(
+                            Component.literal(": " + provider.amount())
+                    ).withStyle(
+                            Style.EMPTY.withColor(ColorUtil.colorToTextColor(provider.aspect().color()))
+                    )
+            ));
+        }
+    }
+
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onRenderAwakenLevel(RenderTooltipEvent.GatherComponents event)
     {
@@ -59,6 +111,49 @@ public class CustomTooltipRenders
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onRenderForge(RenderTooltipEvent.GatherComponents event)
+    {
+        ItemStack stack = event.getItemStack();
+        List<UpgradeTier> tiers = NBTUtil.getForgeTiers(stack);
+        if (tiers.isEmpty())
+            return;
+
+        int max = NBTUtil.deserializeMaxForgeLevel(stack);
+        int used = NBTUtil.deserializeForgeLevel(stack);
+
+        if (max == 0)
+            return;
+
+        event.getTooltipElements().add(2, Either.left(
+                Component.translatable("tooltip.forging_slots.msg")
+                        .append(Component.literal(": " + used + " / " + max))
+                        .withStyle(ChatFormatting.GOLD)
+        ));
+
+        event.getTooltipElements().add(3, Either.left(Component.EMPTY));
+
+        for (int i = 0; i < tiers.size(); i++)
+        {
+            UpgradeTier tier = tiers.get(i);
+            event.getTooltipElements().add(i + 4, Either.left(
+                    Component
+                            .literal((i + 1) + ": ")
+                            .append(
+                                    Component.translatable(
+                                            ForgeUtils.localize(tier.id())
+                                    )
+                            )
+                            .withStyle(
+                                    Style.EMPTY.withColor(
+                                            ColorUtil.colorToTextColor(tier.color())
+                                    )
+                            )
+                    )
+            );
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onRenderQualityTooltip(RenderTooltipEvent.GatherComponents event)
     {
         ItemStack stack = event.getItemStack();
@@ -77,7 +172,6 @@ public class CustomTooltipRenders
     {
         ItemStack stack = event.getItemStack();
         Quality quality = NBTUtil.deserializeQuality(stack);
-        Awaken.LOGGER.info("Rendering tooltip for stack {}", stack.toString());
         if (quality == null)
             return;
 

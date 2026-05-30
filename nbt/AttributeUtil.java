@@ -1,5 +1,7 @@
 package com.fomdev.awaken.nbt;
 
+import com.fomdev.awaken.init.Awaken;
+import com.google.common.collect.Multimap;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -11,6 +13,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.registries.ForgeRegistries;
 
+import java.util.Arrays;
 import java.util.UUID;
 
 public class AttributeUtil
@@ -21,16 +24,22 @@ public class AttributeUtil
     private static final AttributeHolder EMPTY = new AttributeHolder(null, null, null, null, null);
 
     public static void clearAttribute(
-            ItemStack stack
+            ItemStack stack,
+            String ns
     )
     {
         CompoundTag tag = stack.getOrCreateTag();
 
-        tag.remove(CUSTOM_NBT_NAMESPACE);
+        if (!tag.contains(CUSTOM_NBT_NAMESPACE))
+            return;
+
+        CompoundTag nbtTag = tag.getCompound(CUSTOM_NBT_NAMESPACE);
+        nbtTag.remove(ns);
     }
 
     public static void delAttribute(
             ItemStack stack,
+            String ns,
             String id
     )
     {
@@ -39,27 +48,37 @@ public class AttributeUtil
             tag.put(CUSTOM_NBT_NAMESPACE, new CompoundTag());
 
         CompoundTag nbtTag = tag.getCompound(CUSTOM_NBT_NAMESPACE);
-        nbtTag.remove(id);
+        if (!nbtTag.contains(ns))
+            return;
+
+        CompoundTag dataTag = nbtTag.getCompound(ns);
+        dataTag.remove(id);
     }
 
     public static void putAttribute(
             ItemStack stack,
             Attribute attribute,
             String id,
+            String ns,
             Double amount,
             AttributeModifier.Operation operation,
             EquipmentSlot slot
     )
     {
         CompoundTag tag = stack.getOrCreateTag();
+        syncAttributeDataToPersistent(stack);
+
         if (!tag.contains(CUSTOM_NBT_NAMESPACE))
             tag.put(CUSTOM_NBT_NAMESPACE, new CompoundTag());
 
         CompoundTag nbtTag = tag.getCompound(CUSTOM_NBT_NAMESPACE);
+        if (!nbtTag.contains(ns))
+            nbtTag.put(ns, new CompoundTag());
 
-        nbtTag.put(id, new CompoundTag());
-        CompoundTag modifier = nbtTag.getCompound(id);
-        setModifier(modifier, new AttributeHolder(
+        CompoundTag nsTag = nbtTag.getCompound(ns);
+        nsTag.put(id, new CompoundTag());
+        CompoundTag modifier = nsTag.getCompound(id);
+        setModifierToCache(modifier, new AttributeHolder(
                 attribute,
                 id,
                 slot,
@@ -70,103 +89,177 @@ public class AttributeUtil
         syncPersistentDataToAttribute(stack);
     }
 
+    public static void syncAttributeDataToPersistent(
+            ItemStack stack
+    )
+    {
+        syncAttributeDataToPersistent$0(stack);
+        syncAttributeDataToPersistent$1(stack);
+    }
+
     public static void syncPersistentDataToAttribute(
             ItemStack stack
     )
     {
         CompoundTag tag = stack.getOrCreateTag();
+
+        if (!tag.contains(CUSTOM_NBT_NAMESPACE))
+            return;
+
         if (!tag.contains("AttributeModifiers"))
             tag.put("AttributeModifiers", new ListTag());
-
-        if (!tag.contains(CUSTOM_NBT_NAMESPACE))
-            return;
-
-        ListTag attrTag = tag.getList("AttributeModifiers", 9);
-        CompoundTag persistDataTag = tag.getCompound(CUSTOM_NBT_NAMESPACE);
-
-        clearModTag(attrTag);
-
-        for (String id: persistDataTag.getAllKeys())
-        {
-            CompoundTag mtag = persistDataTag.getCompound(id);
-            String attr = mtag.getString("attr");
-            double amount = persistDataTag.getDouble("amount");
-            int operation = persistDataTag.getInt("operation");
-            String slot = persistDataTag.getString("slot");
-
-            CompoundTag modifier = new CompoundTag();
-            modifier.putString("AttributeName", attr);
-            modifier.putDouble("Amount", amount);
-            modifier.putString("Slot", slot);
-            modifier.putInt("Operation", operation);
-            modifier.putString(CUSTOM_NBT_SIGNATURE, id);
-            modifier.putIntArray("UUID", UUIDUtil.uuidToIntArray(UUID.randomUUID()));
-
-            attrTag.add(modifier);
-        }
-    }
-
-    public static void syncAttributeDataToPersistent(
-            ItemStack stack
-    )
-    {
-        CompoundTag tag = stack.getOrCreateTag();
-        if (!tag.contains("AttributeModifiers"))
-            return;
-
-        if (!tag.contains(CUSTOM_NBT_NAMESPACE))
-            tag.put(CUSTOM_NBT_NAMESPACE, new CompoundTag());
 
         ListTag attrTag = tag.getList("AttributeModifiers", 9);
         CompoundTag nbtTag = tag.getCompound(CUSTOM_NBT_NAMESPACE);
 
-        for (Tag modifier: attrTag)
+        for (String key: nbtTag.getAllKeys())
         {
-            if (!(modifier instanceof CompoundTag mtag))
-                continue;
+            CompoundTag nsTag = nbtTag.getCompound(key);
+            for (String id: nsTag.getAllKeys())
+            {
+                CompoundTag modifyTag = nsTag.getCompound(id);
 
-            AttributeHolder holder = getModifier(mtag);
-            if (holder == EMPTY)
-                continue;
+                AttributeHolder holder = getModifierFromCache(modifyTag);
+                CompoundTag mtag = new CompoundTag();
+                setModifierToAttribute(mtag, holder);
 
-            if (!nbtTag.contains(holder.id()))
-                nbtTag.put(holder.id(), new CompoundTag());
-
-            setModifier(nbtTag.getCompound(holder.id()), holder);
+                attrTag.add(mtag);
+            }
         }
     }
 
-    private static void clearModTag(
-            ListTag attr
+    public static void syncAttributeDataToPersistent$0(
+            ItemStack stack
     )
     {
-        for (Tag tag: attr)
+        CompoundTag tag = stack.getOrCreateTag();
+        if (tag.contains(CUSTOM_NBT_NAMESPACE))
+            return;
+
+        tag.put(CUSTOM_NBT_NAMESPACE, new CompoundTag());
+
+        CompoundTag nbtTag = tag.getCompound(CUSTOM_NBT_NAMESPACE);
+        if (!nbtTag.contains("vanilla"))
+            nbtTag.put("vanilla", new CompoundTag());
+
+        CompoundTag vanillaTag = nbtTag.getCompound("vanilla");
+        Arrays.stream(EquipmentSlot.values()).forEach(slot -> {
+            Multimap<Attribute, AttributeModifier> map = stack.getAttributeModifiers(slot);
+            if (map.isEmpty())
+                return;
+
+            map.forEach((k, v) -> {
+                UUID id = UUID.randomUUID();
+                AttributeHolder holder = new AttributeHolder(
+                        k,
+                        id.toString(),
+                        slot,
+                        v.getAmount(),
+                        v.getOperation()
+                );
+
+                CompoundTag mtag = new CompoundTag();
+                setModifierToCache(mtag, holder);
+
+                vanillaTag.put(id.toString(), mtag);
+
+                Awaken.LOGGER.info("INFO: FOUND ATTR " + mtag);
+            });
+        });
+    }
+
+    public static void syncAttributeDataToPersistent$1(
+            ItemStack stack
+    )
+    {
+        CompoundTag tag = stack.getOrCreateTag();
+        if (tag.contains(CUSTOM_NBT_NAMESPACE)) // Only ran once initially
+            return;
+
+        tag.put(CUSTOM_NBT_NAMESPACE, new CompoundTag());
+
+        if (!tag.contains("AttributeModifiers"))
+            return;
+
+        CompoundTag nbtTag = tag.getCompound(CUSTOM_NBT_NAMESPACE);
+        if (!nbtTag.contains("vanilla"))
+            nbtTag.put("vanilla", new CompoundTag());
+
+        ListTag attrTag = tag.getList("AttributeModifiers", 9);
+        CompoundTag vanillaTag = nbtTag.getCompound("vanilla");
+
+        clearModTags(attrTag);
+
+        for (Tag t: attrTag)
         {
-            if (!(tag instanceof CompoundTag mtag))
+            if (!(t instanceof CompoundTag mtag))
                 continue;
 
-            if (mtag.contains(CUSTOM_NBT_SIGNATURE))
-                attr.remove(mtag);
+            AttributeHolder holder = getModifierFromAttribute(mtag);
+            CompoundTag modifyTag = new CompoundTag();
+
+            setModifierToCache(modifyTag, holder);
+            vanillaTag.put(UUID.randomUUID().toString(), modifyTag);
+
+            Awaken.LOGGER.info("Found attribute: " + modifyTag);
         }
     }
 
-    private static AttributeHolder getModifier(
+    private static void clearModTags(
+            ListTag tag
+    )
+    {
+        tag.removeIf(t -> {
+            if (!(t instanceof CompoundTag mtag)) return false;
+            return mtag.contains(CUSTOM_NBT_SIGNATURE);
+        });
+    }
+
+    private static AttributeHolder getModifierFromAttribute(
             CompoundTag attr
     )
     {
-        if (!attr.contains(CUSTOM_NBT_SIGNATURE))
-            return EMPTY;
-
         String id = attr.getString("AttributeName");
         Double amount = attr.getDouble("Amount");
         EquipmentSlot slot = EquipmentSlot.byName(attr.getString("Slot"));
         AttributeModifier.Operation operation = AttributeModifier.Operation.fromValue(attr.getInt("Operation"));
-        String name = attr.getString(CUSTOM_NBT_SIGNATURE);
 
-        return new AttributeHolder(ForgeRegistries.ATTRIBUTES.getValue(ResourceLocation.parse(id)), name,  slot, amount, operation);
+        return new AttributeHolder(ForgeRegistries.ATTRIBUTES.getValue(ResourceLocation.parse(id)), null,  slot, amount, operation);
     }
 
-    private static void setModifier(
+    private static AttributeHolder getModifierFromCache(
+            CompoundTag attr
+    )
+    {
+        String id = attr.getString("name");
+        Attribute attribute = ForgeRegistries.ATTRIBUTES.getValue(ResourceLocation.parse(attr.getString("attr")));
+        double amount = attr.getDouble("amount");
+        AttributeModifier.Operation operation = AttributeModifier.Operation.fromValue(attr.getInt("operation"));
+        EquipmentSlot slot = EquipmentSlot.byName(attr.getString("slot"));
+
+        return new AttributeHolder(
+                attribute,
+                id,
+                slot,
+                amount,
+                operation
+        );
+    }
+
+    private static void setModifierToAttribute(
+            CompoundTag cns,
+            AttributeHolder holder
+    )
+    {
+        cns.putString("AttributeName", String.valueOf(ForgeRegistries.ATTRIBUTES.getResourceKey(holder.attr).get().location()));
+        cns.putString(CUSTOM_NBT_SIGNATURE, holder.id());
+        cns.putString("Slot", holder.slot().getName());
+        cns.putDouble("Amount", holder.amount());
+        cns.putInt("Operation", holder.operation().toValue());
+        cns.putIntArray("UUID", UUIDUtil.uuidToIntArray(UUID.randomUUID()));
+    }
+
+    private static void setModifierToCache(
             CompoundTag cns,
             AttributeHolder holder
     )
@@ -185,5 +278,5 @@ public class AttributeUtil
             EquipmentSlot slot,
             Double amount,
             AttributeModifier.Operation operation
-    ){};
+    ){}
 }

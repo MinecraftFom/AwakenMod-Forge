@@ -19,6 +19,7 @@ import org.jetbrains.annotations.Range;
 import java.awt.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ForgeUtils
 {
@@ -44,12 +45,11 @@ public class ForgeUtils
                     UpgradeTier tier
             )
     {
-        AttributeUtil.clearAttribute(stack);
+        AttributeUtil.clearAttribute(stack, "forgeutil");
 
         UpgradeTier.TierModifierSlot slot = UpgradeTier.castSlot(stack.getItem());
         if (slot == null)
             return stack;
-        NBTUtil.putForgeTier(stack, tier);
 
         return switch (slot)
         {
@@ -59,12 +59,32 @@ public class ForgeUtils
     }
 
     @Nullable
+    public static ResourceLocation getID
+            (
+                    UpgradeTier tier
+            )
+    {
+        AtomicReference<ResourceLocation> location = new AtomicReference<>();
+
+        registeredTiers.forEach((k, v) -> {
+            if (v.tier() == tier)
+                location.set(k);
+        });
+
+        return location.get();
+    }
+
+    @Nullable
     public static UpgradeTier getTier
             (
                     ResourceLocation location
             )
     {
-        return registeredTiers.get(location).tier();
+        UpgradeTier.CompoundTierContainer container = registeredTiers.get(location);
+        if (container == null)
+            return null;
+
+        return container.tier();
     }
 
     @Nullable
@@ -276,6 +296,8 @@ public class ForgeUtils
         if (!NBTUtil.addForged(stack, 1))
             return stack; // Makes sure it won't cause any errors
 
+        NBTUtil.putForgeTier(stack, tier);
+
         Quality quality = NBTUtil.deserializeQuality(stack);
         float factor = quality == null? 0.0F: quality.factor();
 
@@ -289,6 +311,7 @@ public class ForgeUtils
                     stack,
                     Attributes.ARMOR,
                     tier.id() + "_armor",
+                    "forgeutil",
                     armor.get(slot).value() * (1 + factor),
                     constructOperation(armor.get(slot).operation()),
                     stack.getEquipmentSlot()
@@ -313,6 +336,7 @@ public class ForgeUtils
                     stack,
                     Attributes.ARMOR_TOUGHNESS,
                     tier.id() + "_protection",
+                    "forgeutil",
                     protection.get(slot).value().doubleValue() * (1 + factor),
                     constructOperation(protection.get(slot).operation()),
                     stack.getEquipmentSlot()
@@ -335,6 +359,8 @@ public class ForgeUtils
         if (!NBTUtil.addForged(stack, 1))
             return stack; // Makes sure it won't cause any errors
 
+        NBTUtil.putForgeTier(stack, tier);
+
         Quality quality = NBTUtil.deserializeQuality(stack);
         float factor = quality == null? 0.0F: quality.factor();
 
@@ -350,6 +376,7 @@ public class ForgeUtils
                     stack,
                     Attributes.ATTACK_DAMAGE,
                     tier.id() + "_attack_damage",
+                    "forgeutil",
                     attack.get(slot).value().doubleValue() * (1 + factor),
                     constructOperation(attack.get(slot).operation()),
                     stack.getEquipmentSlot()
@@ -366,7 +393,7 @@ public class ForgeUtils
             );
         }
 
-        if ((efficiency = tier.efficiency()) != null)
+        if ((efficiency = tier.efficiency()) != null && efficiency.get(slot) != null)
         {
             float original = NBTUtil.getEfficiency(stack);
             if (original == -1) original = 0;
@@ -386,12 +413,13 @@ public class ForgeUtils
         if ((enchant = tier.enchant()) != null && enchant.get(slot) != null)
             NBTUtil.addEnchantValue(stack, (int) (enchant.get(slot).value() * (1 + factor)), enchant.get(slot).operation());
 
-        if ((fortune = tier.fortune()) != null)
+        if ((fortune = tier.fortune()) != null && fortune.get(slot) != null)
         {
             AttributeUtil.putAttribute(
                     stack,
                     Attributes.LUCK,
                     tier.id() + "_fortune_mainhand",
+                    "forgeutil",
                     fortune.get(slot).value().doubleValue() * (1 + factor),
                     constructOperation(fortune.get(slot).operation()),
                     EquipmentSlot.MAINHAND
@@ -401,6 +429,7 @@ public class ForgeUtils
                     stack,
                     Attributes.LUCK,
                     tier.id() + "_fortune_offhand",
+                    "forgeutil",
                     fortune.get(slot).value().doubleValue() * (1 + factor),
                     constructOperation(fortune.get(slot).operation()),
                     EquipmentSlot.OFFHAND
@@ -412,6 +441,7 @@ public class ForgeUtils
                     stack,
                     Attributes.ATTACK_SPEED,
                     tier.id() + "_attack_speed",
+                    "forgeutil",
                     speed.get(slot).value() * (1 + factor),
                     constructOperation(speed.get(slot).operation()),
                     EquipmentSlot.MAINHAND

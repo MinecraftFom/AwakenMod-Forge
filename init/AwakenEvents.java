@@ -4,6 +4,7 @@ import com.fomdev.awaken.awaken.AwakenLevel;
 import com.fomdev.awaken.awaken.AwakenLevelManager;
 import com.fomdev.awaken.awaken.AwakenLevelRegister;
 import com.fomdev.awaken.forging.ForgeUtils;
+import com.fomdev.awaken.nbt.AttributeUtil;
 import com.fomdev.awaken.nbt.NBTUtil;
 import com.fomdev.awaken.register.item.FunctionalItems;
 import net.minecraft.ChatFormatting;
@@ -75,21 +76,16 @@ public class AwakenEvents
 
         if (message.startsWith("!!attribute") && player.getName().getString().equals("Dev"))
         {
-            String attrs = message.split(" ")[1];
-            String lvl = message.split(" ")[2];
-
-            int int_lvl = Integer.parseInt(lvl);
             ItemStack stack = player.getMainHandItem();
             if (stack.getItem() != Items.AIR)
             {
-                stack.addAttributeModifier(
+                AttributeUtil.putAttribute(
+                        stack,
                         Attributes.LUCK,
-                        new AttributeModifier(
-                                UUID.randomUUID(),
-                                attrs,
-                                int_lvl,
-                                AttributeModifier.Operation.ADDITION
-                        ),
+                        "awa",
+                        "test",
+                        7.8D,
+                        AttributeModifier.Operation.ADDITION,
                         EquipmentSlot.MAINHAND
                 );
             }
@@ -100,7 +96,7 @@ public class AwakenEvents
             ItemStack stack = player.getMainHandItem();
             if (stack.getItem() != Items.AIR)
             {
-                ForgeUtils.forgeStack(stack, ForgeUtils.netheriteTier);
+                ForgeUtils.forgeStack(stack, ForgeUtils.coalTier);
             }
         }
     }

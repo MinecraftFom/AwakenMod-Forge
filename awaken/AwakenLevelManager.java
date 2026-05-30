@@ -11,11 +11,13 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.entity.player.PlayerWakeUpEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.jetbrains.annotations.Nullable;
@@ -106,6 +108,26 @@ public class AwakenLevelManager
         Player player = event.getEntity();
 
         awaken(player, NBTUtil.deserializeAwakenLevel(event.getOriginal()), 0);
+    }
+
+    @SubscribeEvent
+    public static void onPlayerKill(LivingDeathEvent event)
+    {
+        if (!(event.getSource().getEntity() instanceof Player player))
+            return;
+
+        if (!(event.getEntity() instanceof Monster))
+            return;
+
+        awaken(player, random.nextFloat(20.0F), 0);
+    }
+
+    @SubscribeEvent
+    public static void onPlayerWake(PlayerWakeUpEvent event)
+    {
+        Player player = event.getEntity();
+
+        awaken(player, random.nextFloat(10.0F), event.wakeImmediately()? 1: 0);
     }
 
     @SubscribeEvent

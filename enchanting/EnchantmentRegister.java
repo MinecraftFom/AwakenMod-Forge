@@ -88,6 +88,16 @@ public class EnchantmentRegister
         return getAspect(ResourceLocation.fromNamespaceAndPath(modid, id));
     }
 
+    public static String localizeAlignment(String id)
+    {
+        return "alignment."+id+".name";
+    }
+
+    public static String localizeAspect(String id)
+    {
+        return "aspect."+id+".name";
+    }
+
     public static Alignment registerAlignment(Alignment alignment, String modid)
     {
         ResourceLocation location = ResourceLocation.fromNamespaceAndPath(modid, alignment.id());
