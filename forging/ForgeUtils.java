@@ -17,8 +17,8 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
 
 import java.awt.*;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ForgeUtils
@@ -553,5 +553,26 @@ public class ForgeUtils
                 Items.CRYING_OBSIDIAN,
                 Items.OBSIDIAN
         );
+    }
+
+    public static UpgradeTier[] shuffle(
+            Random random,
+            int lvl,
+            int max
+    )
+    {
+        if (registeredTiers.isEmpty())
+            return new UpgradeTier[]{};
+
+        int count = random.nextInt(Math.abs(lvl / (lvl - max)));
+
+        List<UpgradeTier> tiers = new ArrayList<>();
+
+        for (int i = 0; i < count; i++)
+        {
+            tiers.add(registeredTiers.values().toArray(UpgradeTier.CompoundTierContainer[]::new)[random.nextInt(registeredTiers.size())].tier());
+        }
+
+        return tiers.toArray(UpgradeTier[]::new);
     }
 }

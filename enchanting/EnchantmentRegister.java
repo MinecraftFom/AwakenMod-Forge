@@ -11,10 +11,9 @@ import net.minecraft.world.item.Items;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Mod.EventBusSubscriber(modid = AwakenRPG.MODID)
 public class EnchantmentRegister
@@ -156,5 +155,62 @@ public class EnchantmentRegister
                 alignment.onEvent(event, prov.level());
             }
         }
+    }
+
+    public static Alignment.AlignmentProvider[] shuffleAlignments(
+            Random random,
+            int lvl
+    )
+    {
+        if (registeredAlignments.isEmpty())
+            return new Alignment.AlignmentProvider[]{};
+
+        int count = random.nextInt(lvl / 2);
+        int maxLvl = random.nextInt(lvl / 5 + 1) + 1;
+
+        List<Alignment.AlignmentProvider> providers = new ArrayList<>();
+
+        for (int i = 0; i < count; i++)
+        {
+            int apos = random.nextInt(registeredAlignments.size());
+            providers.add(new Alignment.AlignmentProvider(registeredAlignments.values().toArray(Alignment[]::new)[apos], random.nextInt(maxLvl) + 1));
+        }
+
+        return providers.toArray(Alignment.AlignmentProvider[]::new);
+    }
+
+    public static Aspect.AspectProvider[] shuffleAspects(
+            Random random,
+            int lvl
+    )
+    {
+        if (registeredAspects.isEmpty())
+            return new Aspect.AspectProvider[]{};
+
+        int count = random.nextInt(lvl / 2);
+        int maxLvl = random.nextInt(lvl) + 1;
+
+        List<Aspect.AspectProvider> providers = new ArrayList<>();
+
+        for (int i = 0; i < count; i++)
+        {
+            int apos = random.nextInt(registeredAspects.size());
+            providers.add(new Aspect.AspectProvider()
+            {
+                @Override
+                public int amount()
+                {
+                    return (random.nextInt(maxLvl) + 1) * 10;
+                }
+
+                @Override
+                public @NotNull Aspect aspect()
+                {
+                    return registeredAspects.values().toArray(Aspect[]::new)[apos];
+                }
+            });
+        }
+
+        return providers.toArray(new Aspect.AspectProvider[0]);
     }
 }

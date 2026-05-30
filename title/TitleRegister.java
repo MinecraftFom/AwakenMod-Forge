@@ -22,6 +22,10 @@ public class TitleRegister
     private static final Map<ResourceLocation, Suffix> registeredSuffixes = new HashMap<>();
     private static final Map<ResourceLocation, Title> registeredTitles = new HashMap<>();
 
+    private static final Map<Prefix, Integer> leveledPrefixes = new HashMap<>();
+    private static final Map<Suffix, Integer> leveledSuffixes = new HashMap<>();
+    private static final Map<Title, Integer> leveledTitles = new HashMap<>();
+
     public static ResourceLocation getPrefixId(Prefix prefix)
     {
         for (ResourceLocation location: registeredPrefixes.keySet())
@@ -130,6 +134,30 @@ public class TitleRegister
         return registeredTitles.put(location, title);
     }
 
+    public static void setPrefixGenerateChance(
+            Prefix prefix,
+            int level
+    )
+    {
+        leveledPrefixes.put(prefix, level);
+    }
+
+    public static void setSuffixGenerateChace(
+            Suffix suffix,
+            int level
+    )
+    {
+        leveledSuffixes.put(suffix, level);
+    }
+
+    public static void setTitleGenerateChance(
+            Title title,
+            int level
+    )
+    {
+        leveledTitles.put(title, level);
+    }
+
     public static void syncStackPrefix(ItemStack stack)
     {
         Prefix prefix = NBTUtil.deserializePrefixes(stack);
@@ -203,5 +231,77 @@ public class TitleRegister
             return;
 
         Arrays.stream(suffix.effects()).forEach(player::addEffect);
+    }
+
+    public static Prefix shufflePrefix(
+            Random random,
+            int min,
+            int max
+    )
+    {
+        if (leveledPrefixes.isEmpty())
+            return null;
+
+        int lvl = random.nextInt(max - min) + min;
+        List<Prefix> matched = new ArrayList<>();
+        for (Prefix prefix: leveledPrefixes.keySet())
+        {
+            if (leveledPrefixes.get(prefix) >= lvl)
+                matched.add(prefix);
+        }
+
+        if (matched.isEmpty())
+            return null;
+
+        int index = random.nextInt(matched.size());
+        return matched.get(index);
+    }
+
+    public static Suffix shuffleSuffix(
+            Random random,
+            int min,
+            int max
+    )
+    {
+        if (leveledSuffixes.isEmpty())
+            return null;
+
+        int lvl = random.nextInt(max - min) + min;
+        List<Suffix> matched = new ArrayList<>();
+        for (Suffix suffix: leveledSuffixes.keySet())
+        {
+            if (leveledSuffixes.get(suffix) >= lvl)
+                matched.add(suffix);
+        }
+
+        if (matched.isEmpty())
+            return null;
+
+        int index = random.nextInt(matched.size());
+        return matched.get(index);
+    }
+
+    public static Title shuffleTitle(
+            Random random,
+            int min,
+            int max
+    )
+    {
+        if (leveledTitles.isEmpty())
+            return null;
+
+        int lvl = random.nextInt(max - min) + min;
+        List<Title> matched = new ArrayList<>();
+        for (Title title: leveledTitles.keySet())
+        {
+            if (leveledTitles.get(title) >= lvl)
+                matched.add(title);
+        }
+
+        if (matched.isEmpty())
+            return null;
+
+        int index = random.nextInt(matched.size());
+        return matched.get(index);
     }
 }
