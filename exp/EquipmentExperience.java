@@ -13,6 +13,7 @@ import net.minecraftforge.common.ToolActions;
 import net.minecraftforge.event.entity.ProjectileImpactEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
+import net.minecraftforge.event.entity.player.CriticalHitEvent;
 import net.minecraftforge.event.level.BlockEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -44,31 +45,31 @@ public class EquipmentExperience
         if (helmet.getItem() != Items.AIR)
         {
             NBTUtil.addExpValue(helmet, random.nextInt(2), 0);
-            NBTUtil.updateExp(helmet, 0.02F);
+            NBTUtil.updateExp(player, helmet, 0.02F);
             syncLevelWithForgeCount(helmet);
         }
         else if (chest.getItem() != Items.AIR)
         {
             NBTUtil.addExpValue(chest, random.nextInt(4), 0);
-            NBTUtil.updateExp(chest, 0.02F);
+            NBTUtil.updateExp(player, chest, 0.02F);
             syncLevelWithForgeCount(chest);
         }
         else if (legs.getItem() != Items.AIR)
         {
             NBTUtil.addExpValue(legs, random.nextInt(3), 0);
-            NBTUtil.updateExp(legs, 0.02F);
+            NBTUtil.updateExp(player, legs, 0.02F);
             syncLevelWithForgeCount(legs);
         }
         else if (boots.getItem() != Items.AIR)
         {
             NBTUtil.addExpValue(boots, random.nextInt(1), 0);
-            NBTUtil.updateExp(boots, 0.02F);
+            NBTUtil.updateExp(player, boots, 0.02F);
             syncLevelWithForgeCount(boots);
         }
         else if (shield.getItem() instanceof ShieldItem)
         {
             NBTUtil.addExpValue(shield, random.nextInt(2), 0);
-            NBTUtil.updateExp(shield, 0.01F);
+            NBTUtil.updateExp(player, shield, 0.01F);
             syncLevelWithForgeCount(shield);
         }
     }
@@ -87,14 +88,14 @@ public class EquipmentExperience
         if (mainHand.getItem() instanceof BowItem)
         {
             NBTUtil.addExpValue(mainHand, random.nextInt(5), 0);
-            NBTUtil.updateExp(mainHand, 0.03F);
+            NBTUtil.updateExp(player, mainHand, 0.03F);
             syncLevelWithForgeCount(mainHand);
         }
         else if (offHand.getItem() instanceof BowItem)
         {
             // nor: I WILL NEVER HOLD BOWS ON MY OFF HAND!!!
             NBTUtil.addExpValue(offHand, random.nextInt(5), 0);
-            NBTUtil.updateExp(offHand, 0.03F);
+            NBTUtil.updateExp(player, offHand, 0.03F);
             syncLevelWithForgeCount(offHand);
         }
     }
@@ -110,7 +111,7 @@ public class EquipmentExperience
         if (event.getFinalState().getBlock() != Blocks.FARMLAND) return; // Makes sure the event was fully done
 
         NBTUtil.addExpValue(stack, random.nextInt(1), 0);
-        NBTUtil.updateExp(stack, 0.01F);
+        NBTUtil.updateExp(event.getPlayer(), stack, 0.01F);
         syncLevelWithForgeCount(stack);
     }
 
@@ -129,7 +130,7 @@ public class EquipmentExperience
             case AXE, PICK, SHOVE ->
             {
                 NBTUtil.addExpValue(stack, random.nextInt(2), 0);
-                NBTUtil.updateExp(stack, 0.01F); // REWARD
+                NBTUtil.updateExp(player, stack, 0.01F); // REWARD
                 syncLevelWithForgeCount(stack);
             }
         }
@@ -152,7 +153,30 @@ public class EquipmentExperience
             case AXE, SWORD ->
             {
                 NBTUtil.addExpValue(stack, random.nextInt(4), 0);
-                NBTUtil.updateExp(stack, 0.03F); // REWARD
+                NBTUtil.updateExp(entity, stack, 0.03F); // REWARD
+                syncLevelWithForgeCount(stack);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void handleWeaponEvents(CriticalHitEvent event)
+    {
+        Player entity = event.getEntity();
+        if (entity.getCommandSenderWorld().isClientSide()) return; // Only accepts server side procedure
+
+        ItemStack stack = entity.getMainHandItem(); // Gets the using item
+
+        UpgradeTier.TierModifierSlot slot = UpgradeTier.castSlot(stack.getItem());
+        if (slot == null)
+            return;
+
+        switch (slot)
+        {
+            case AXE, SWORD ->
+            {
+                NBTUtil.addExpValue(stack, random.nextInt(8), 0);
+                NBTUtil.updateExp(entity, stack, 0.06F); // REWARD
                 syncLevelWithForgeCount(stack);
             }
         }
