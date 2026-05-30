@@ -111,6 +111,9 @@ public class EnchantmentRegister
     {
         Player player = event.getEntity();
 
+        if (player == null)
+            return;
+
         ItemStack head = player.getItemBySlot(EquipmentSlot.HEAD);
         ItemStack chest = player.getItemBySlot(EquipmentSlot.CHEST);
         ItemStack legs = player.getItemBySlot(EquipmentSlot.LEGS);
