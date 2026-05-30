@@ -119,11 +119,35 @@ public class AwakenLevelRegister
 
             AwakenLevel curr = sortedFrozenCache.get(i);
             AwakenLevel next = sortedFrozenCache.get(i + 1);
-            if (curr.min() <= level && level <= next.min())
+            if (curr.min() <= level && level < next.min())
                 return curr;
         }
 
         return null;
+    }
+
+    public static int getLevel(AwakenLevel level)
+    {
+        return sortedFrozenCache.indexOf(level);
+    }
+
+    public static AwakenLevel getNextLevel(AwakenLevel level)
+    {
+        int index = sortedFrozenCache.indexOf(level);
+        if (index < 0)
+            return null;
+
+        if (index == sortedFrozenCache.size() - 1)
+            return null;
+
+        try
+        {
+            return sortedFrozenCache.get(index + 1);
+        } catch (IndexOutOfBoundsException e)
+        {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     public static AwakenLevel register(AwakenLevel level, String modid)

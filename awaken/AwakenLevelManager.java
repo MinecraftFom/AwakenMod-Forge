@@ -2,15 +2,20 @@ package com.fomdev.awaken.awaken;
 
 import com.fomdev.awaken.init.Awaken;
 import com.fomdev.awaken.init.AwakenRPG;
+import com.fomdev.awaken.nbt.HealthUtil;
 import com.fomdev.awaken.nbt.NBTUtil;
 import com.fomdev.flib.util.ColorUtil;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
+import net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.jetbrains.annotations.Nullable;
@@ -21,6 +26,8 @@ import java.util.*;
 @Mod.EventBusSubscriber(modid = AwakenRPG.MODID)
 public class AwakenLevelManager
 {
+    public static final Random random = new Random();
+
     public static final AwakenLevel levelNaive;
     public static final AwakenLevel levelNovice;
 
@@ -43,6 +50,45 @@ public class AwakenLevelManager
             default -> original;
         };
 
+        AwakenLevel level = getLevelOf(p);
+
+        if (level != null)
+        {
+            AwakenLevel nextLevel = AwakenLevelRegister.getNextLevel(level);
+
+            if (nextLevel != null && result >= nextLevel.min())
+            {
+                if (player instanceof ServerPlayer sp)
+                {
+                    sp.connection.send(
+                            new ClientboundSetActionBarTextPacket(
+                                    Component
+                                            .translatable(
+                                                    "chat.congrates_player_upgrade.msg"
+                                            )
+                                            .append(
+                                                    Component.literal(
+                                                            ": "
+                                                    )
+                                            )
+                                            .append(
+                                                    Component.translatable(
+                                                            AwakenLevelManager.localize(
+                                                                    nextLevel.id()
+                                                            )
+                                                    )
+                                            )
+                                            .withStyle(ChatFormatting.GOLD)
+                            )
+                    );
+
+                    int awakenLevel = AwakenLevelRegister.getLevel(nextLevel);
+                    if (awakenLevel > 0)
+                        HealthUtil.setMaxHealthPersistent(sp, p.getMaxHealth() + random.nextInt(awakenLevel));
+                }
+            }
+        }
+
         storeAwakenLevelAsNBT(p, result); // Update the value for the player
         return result;
     }
@@ -55,12 +101,23 @@ public class AwakenLevelManager
     }
 
     @SubscribeEvent
+    public static void onPlayerClone(PlayerEvent.Clone event)
+    {
+        Player player = event.getEntity();
+
+        awaken(player, NBTUtil.deserializeAwakenLevel(event.getOriginal()), 0);
+    }
+
+    @SubscribeEvent
     public static void onDeathPlayerPunish(LivingDeathEvent event)
     {
         if (!(event.getEntity() instanceof Player player))
             return;
 
-
+        float level = NBTUtil.deserializeAwakenLevel(player);
+        AwakenLevel awakenLevel = AwakenLevelRegister.getLevel(level);
+        int lvl = AwakenLevelRegister.getLevel(awakenLevel);
+        awaken(player, random.nextInt((int) level / (10 * lvl)), 1);
     }
 
     @SubscribeEvent
