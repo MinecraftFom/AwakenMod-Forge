@@ -17,8 +17,8 @@ public class QualityUtil
 
     public static final Quality naive;
     public static final Quality novice;
-//    public static final Quality prehistoric;
-//    public static final Quality prelithic;
+    public static final Quality prehistoric;
+//    public static final Quality pathetic;
 //    public static final Quality basic;
 //    public static final Quality started;
 //    public static final Quality learner;
@@ -89,16 +89,11 @@ public class QualityUtil
                 AwakenRPG.MODID,
                 Quality.of(
                         "naive",
-                        new Color(0xAA, 0xAA, 0xAA),
-                        false,
-                        0.7F,
-                        0.1F,
                         5,
                         0.01F,
                         1,
-                        new GeneratingMobTypes[]{GeneratingMobTypes.Types.MONSTER},
-                        3000,
-                        6.0F
+                        Quality.ColorPattern.SINGLE,
+                        new Color(0xAA, 0xAA, 0xAA)
                 )
         );
 
@@ -106,14 +101,28 @@ public class QualityUtil
                 AwakenRPG.MODID,
                 Quality.of(
                         "novice",
-                        new Color(0xAB, 0xAB, 0xAB),
-                        false,
-                        0.67F,
-                        0.1F,
                         6,
                         0.012F,
                         2,
-                        new GeneratingMobTypes[]{GeneratingMobTypes.Types.MONSTER}
+                        Quality.ColorPattern.SINGLE,
+                        new Color(0xAB, 0xAB, 0xAB)
+                )
+        );
+
+        prehistoric = registerQuality(
+                AwakenRPG.MODID,
+                Quality.of(
+                        "prehistoric",
+                        8,
+                        0.01F,
+                        3,
+                        Quality.ColorPattern.MULTIPLE,
+                        new Color(0xFF, 0x00, 0x00),
+                        new Color(0xFF, 0xFF, 0x00),
+                        new Color(0xFF, 0xFF, 0xFF),
+                        new Color(0x00, 0xFF, 0xFF),
+                        new Color(0x00, 0x00, 0xFF),
+                        new Color(0x00, 0x00, 0x00)
                 )
         );
 
@@ -121,14 +130,12 @@ public class QualityUtil
                 AwakenRPG.MODID,
                 Quality.of(
                         "infinity",
-                        new Color(0xFF, 0xFE, 0xFE, 0xA),
-                        true,
-                        0.00001F,
-                        0.5F,
                         255,
                         20F,
                         17,
-                        new GeneratingMobTypes[]{GeneratingMobTypes.Types.BOSS}
+                        Quality.ColorPattern.CONTINUE,
+                        new Color(0xFF, 0x00, 0x00),
+                        new Color(0x00, 0x00, 0xFF)
                 )
         );
     }

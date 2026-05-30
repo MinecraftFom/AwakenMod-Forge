@@ -1,48 +1,35 @@
 package com.fomdev.awaken.quality;
 
 import com.fomdev.awaken.exp.EquipmentExperience;
-import com.fomdev.awaken.gen.GeneratingMobTypes;
 
 import java.awt.*;
+import java.util.List;
 
 public interface Quality
 {
     String id();
-    Color color();
+    List<Color> color();
 
-    boolean              infectedOnly();
-
-    float                chance();
-    float                durability();
     int                  enchant();
     float                factor();
     int                  level();
-    GeneratingMobTypes[] mobs();
 
     default int maxUpgradeLevel() { return EquipmentExperience.defaultInitialExperienceRequirement; }
     default float upgradeFactor() { return EquipmentExperience.defaultMaxExperienceFactor; }
+    default ColorPattern colorPattern() { return ColorPattern.SINGLE; }
 
     static Quality of
             (
                     String id,
-                    Color color,
-                    boolean infected,
-                    float chance,
-                    float durability,
                     int enchant,
                     float factor,
                     int level,
-                    GeneratingMobTypes[] mobs
+                    ColorPattern pattern,
+                    Color... color
             )
     {
         return new Quality()
         {
-            @Override
-            public boolean infectedOnly()
-            {
-                return infected;
-            }
-
             @Override
             public String id()
             {
@@ -50,21 +37,9 @@ public interface Quality
             }
 
             @Override
-            public Color color()
+            public List<Color> color()
             {
-                return color;
-            }
-
-            @Override
-            public float chance()
-            {
-                return chance;
-            }
-
-            @Override
-            public float durability()
-            {
-                return durability;
+                return List.of(color);
             }
 
             @Override
@@ -86,9 +61,9 @@ public interface Quality
             }
 
             @Override
-            public GeneratingMobTypes[] mobs()
+            public ColorPattern colorPattern()
             {
-                return mobs;
+                return pattern;
             }
         };
     }
@@ -96,26 +71,17 @@ public interface Quality
     static Quality of
             (
                     String id,
-                    Color color,
-                    boolean infected,
-                    float chance,
-                    float durability,
                     int enchant,
                     float factor,
                     int level,
-                    GeneratingMobTypes[] mobs,
                     int maxUpgradeLevel,
-                    float upgradeFactor
+                    float upgradeFactor,
+                    ColorPattern pattern,
+                    Color... color
             )
     {
         return new Quality()
         {
-            @Override
-            public boolean infectedOnly()
-            {
-                return infected;
-            }
-
             @Override
             public String id()
             {
@@ -123,21 +89,9 @@ public interface Quality
             }
 
             @Override
-            public Color color()
+            public List<Color> color()
             {
-                return color;
-            }
-
-            @Override
-            public float chance()
-            {
-                return chance;
-            }
-
-            @Override
-            public float durability()
-            {
-                return durability;
+                return List.of(color);
             }
 
             @Override
@@ -156,12 +110,6 @@ public interface Quality
             public int level()
             {
                 return level;
-            }
-
-            @Override
-            public GeneratingMobTypes[] mobs()
-            {
-                return mobs;
             }
 
             @Override
@@ -175,6 +123,19 @@ public interface Quality
             {
                 return upgradeFactor;
             }
+
+            @Override
+            public ColorPattern colorPattern()
+            {
+                return pattern;
+            }
         };
+    }
+
+    enum ColorPattern
+    {
+        SINGLE,
+        MULTIPLE,
+        CONTINUE
     }
 }
