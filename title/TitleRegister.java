@@ -1,15 +1,21 @@
 package com.fomdev.awaken.title;
 
+import com.fomdev.awaken.init.AwakenRPG;
+import com.fomdev.awaken.nbt.AttributeUtil;
 import com.fomdev.awaken.nbt.NBTUtil;
 import com.fomdev.awaken.quality.Quality;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
+@Mod.EventBusSubscriber(modid = AwakenRPG.MODID)
 public class TitleRegister
 {
     private static final Map<ResourceLocation, Prefix> registeredPrefixes = new HashMap<>();
@@ -126,7 +132,19 @@ public class TitleRegister
 
     public static void syncStackPrefix(ItemStack stack)
     {
+        Prefix prefix = NBTUtil.deserializePrefixes(stack);
+        if (prefix == null) return;
 
+        NBTUtil.setMaxDamage(stack, stack.getMaxDamage() + prefix.additionalDurability());
+        Arrays.stream(prefix.aspects()).forEach(aspect -> NBTUtil.putEnchantmentAspect(stack, aspect));
+    }
+
+    public static void syncStackSuffix(ItemStack stack)
+    {
+        Suffix suffix = NBTUtil.deserializeSuffixes(stack);
+        if (suffix == null) return;
+
+        NBTUtil.setMaxDamage(stack, stack.getMaxDamage() + suffix.additionalDurability());
     }
 
     public static void syncStackTitle(ItemStack stack)
@@ -141,16 +159,48 @@ public class TitleRegister
 
         for (Title.CompoundAttribute attr: title.attrs(quality.factor()))
         {
-            stack.addAttributeModifier(
+            AttributeUtil.putAttribute(
+                    stack,
                     attr.attr(),
-                    new AttributeModifier(
-                            UUID.randomUUID(),
-                            "_fast_attribute_compound_from_title",
-                            attr.amount(),
-                            attr.operation()
-                    ),
+                    quality.id() + attr.attr().toString(),
+                    attr.amount() * quality.factor(),
+                    attr.operation(),
                     stack.getEquipmentSlot()
             );
         }
+    }
+
+    @SubscribeEvent
+    public static void handleSuffixEvent(TickEvent.PlayerTickEvent event)
+    {
+        Player player = event.player;
+        if (player == null)
+            return;
+
+        ItemStack helmet = player.getItemBySlot(EquipmentSlot.HEAD);
+        ItemStack chest = player.getItemBySlot(EquipmentSlot.CHEST);
+        ItemStack legs = player.getItemBySlot(EquipmentSlot.LEGS);
+        ItemStack feet = player.getItemBySlot(EquipmentSlot.FEET);
+        ItemStack main = player.getItemBySlot(EquipmentSlot.MAINHAND);
+        ItemStack off = player.getItemBySlot(EquipmentSlot.OFFHAND);
+
+        handleItemEffects(helmet, player);
+        handleItemEffects(chest, player);
+        handleItemEffects(legs, player);
+        handleItemEffects(feet, player);
+        handleItemEffects(main, player);
+        handleItemEffects(off, player);
+    }
+
+    private static void handleItemEffects(ItemStack stack, Player player)
+    {
+        if (stack.getItem() == Items.AIR)
+            return;
+
+        Suffix suffix = NBTUtil.deserializeSuffixes(stack);
+        if (suffix == null)
+            return;
+
+        Arrays.stream(suffix.effects()).forEach(player::addEffect);
     }
 }

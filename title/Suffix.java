@@ -1,17 +1,20 @@
 package com.fomdev.awaken.title;
 
-import com.fomdev.awaken.enchanting.Alignment;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
+
+import java.util.Arrays;
 
 public interface Suffix
 {
     String id();
     int additionalDurability();
-    Alignment[] alignments();
+    MobEffectInstance[] effects();
 
     static Suffix of(
             String id,
             int durability,
-            Alignment[] alignments
+            MobEffectInstance[] effects
     )
     {
         return new Suffix()
@@ -29,10 +32,19 @@ public interface Suffix
             }
 
             @Override
-            public Alignment[] alignments()
+            public MobEffectInstance[] effects()
             {
-                return alignments;
+                return effects;
             }
         };
+    }
+
+    static Suffix of(
+            String id,
+            int durability,
+            MobEffect[] effects
+    )
+    {
+        return of(id, durability, Arrays.stream(effects).map(effect -> new MobEffectInstance(effect, 0)).toArray(MobEffectInstance[]::new));
     }
 }
