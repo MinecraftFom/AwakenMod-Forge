@@ -3,16 +3,25 @@ package com.fomdev.awaken.init;
 import com.fomdev.awaken.awaken.AwakenLevel;
 import com.fomdev.awaken.awaken.AwakenLevelManager;
 import com.fomdev.awaken.awaken.AwakenLevelRegister;
+import com.fomdev.awaken.forging.ForgeUtils;
 import com.fomdev.awaken.nbt.NBTUtil;
 import com.fomdev.awaken.register.item.FunctionalItems;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraftforge.event.ServerChatEvent;
 import net.minecraftforge.event.entity.item.ItemTossEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+
+import java.util.UUID;
 
 @Mod.EventBusSubscriber
 public class AwakenEvents
@@ -62,6 +71,37 @@ public class AwakenEvents
             float fl_num = Float.parseFloat(num);
 
             AwakenLevelManager.awaken(player, fl_num, 0);
+        }
+
+        if (message.startsWith("!!attribute") && player.getName().getString().equals("Dev"))
+        {
+            String attrs = message.split(" ")[1];
+            String lvl = message.split(" ")[2];
+
+            int int_lvl = Integer.parseInt(lvl);
+            ItemStack stack = player.getMainHandItem();
+            if (stack.getItem() != Items.AIR)
+            {
+                stack.addAttributeModifier(
+                        Attributes.LUCK,
+                        new AttributeModifier(
+                                UUID.randomUUID(),
+                                attrs,
+                                int_lvl,
+                                AttributeModifier.Operation.ADDITION
+                        ),
+                        EquipmentSlot.MAINHAND
+                );
+            }
+        }
+
+        if (message.startsWith("!!forge") && player.getName().getString().equals("Dev"))
+        {
+            ItemStack stack = player.getMainHandItem();
+            if (stack.getItem() != Items.AIR)
+            {
+                ForgeUtils.forgeStack(stack, ForgeUtils.netheriteTier);
+            }
         }
     }
 }
