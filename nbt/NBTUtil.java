@@ -9,11 +9,15 @@ import com.fomdev.awaken.forging.UpgradeTier;
 import com.fomdev.awaken.quality.Quality;
 import com.fomdev.awaken.quality.QualityUtil;
 import com.fomdev.awaken.reinforce.ReinforcementLevels;
+import com.fomdev.awaken.title.Prefix;
+import com.fomdev.awaken.title.Suffix;
 import com.fomdev.awaken.title.Title;
 import com.fomdev.awaken.title.TitleRegister;
+import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -34,6 +38,8 @@ public class NBTUtil
     public static final String nbtReinforceValueStorage = "awakenedReinforce";
     public static final String nbtTitleValueStorage     = "awakenedTitle";
     public static final String nbtQualityValueStorage   = "awakenedQuality";
+
+    public static final String nbtEfficiencyCapability = "awakenedEfficiencyCapability";
 
     public static void addEnchantValue(
             ItemStack stack,
@@ -222,6 +228,38 @@ public class NBTUtil
         return ReinforcementLevels.getLevel(reinforceTag.getInt("level"));
     }
 
+    public static Prefix deserializePrefixes(
+            ItemStack stack
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+        
+        if (!tag.contains(nbtTitleValueStorage))
+            return null;
+
+        CompoundTag titleTag = tag.getCompound(nbtTitleValueStorage);
+        if (!titleTag.contains("prefix"))
+            return null;
+
+        return TitleRegister.getPrefix(ResourceLocation.parse(titleTag.getString("prefix")));
+    }
+    
+    public static Suffix deserializeSuffixes(
+            ItemStack stack
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+
+        if (!tag.contains(nbtTitleValueStorage))
+            return null;
+
+        CompoundTag titleTag = tag.getCompound(nbtTitleValueStorage);
+        if (!titleTag.contains("suffix"))
+            return null;
+
+        return TitleRegister.getSuffix(ResourceLocation.parse(titleTag.getString("suffix")));
+    }
+    
     public static Title deserializeTitle(
             ItemStack stack
     )
@@ -248,7 +286,7 @@ public class NBTUtil
         if (!tag.contains("alignment"))
             return new Alignment.AlignmentProvider[]{};
 
-        CompoundTag alignmentTag = tag.getCompound("alignment");
+        CompoundTag alignmentTag = enchantTag.getCompound("alignment");
 
         List<Alignment.AlignmentProvider> providers = new ArrayList<>();
         for (String key: alignmentTag.getAllKeys())
@@ -325,6 +363,18 @@ public class NBTUtil
             addReinforceValue(stack, 0.0F, 0);
 
         return tag.getCompound(nbtReinforceValueStorage).getFloat("current");
+    }
+
+    public static float getEfficiency(
+            ItemStack stack
+    )
+    {
+        CompoundTag tag = stack.getOrCreateTag();
+
+        if (!tag.contains(nbtEfficiencyCapability))
+            return -1;
+
+        return tag.getFloat(nbtEfficiencyCapability);
     }
 
     public static int getMaxExp(
@@ -428,7 +478,43 @@ public class NBTUtil
         if (!forgeTag.contains("tiers"))
             forgeTag.put("tiers", new ListTag());
 
-        forgeTag.getList("tiers", 8).add(8, StringTag.valueOf(tier.id()));
+        forgeTag.getList("tiers", 8).add(StringTag.valueOf(tier.id()));
+    }
+    
+    public static void putPrefix(
+            ItemStack stack,
+            Prefix prefix
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+
+        if (!tag.contains(nbtTitleValueStorage)) 
+            tag.put(nbtTitleValueStorage, new CompoundTag());
+        CompoundTag titleTag = tag.getCompound(nbtTitleValueStorage);
+
+        ResourceLocation location = TitleRegister.getPrefixId(prefix);
+        if (location == null)
+            return;
+
+        titleTag.putString("prefix", location.toString());
+    }
+
+    public static void putSuffix(
+            ItemStack stack,
+            Suffix suffix
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+
+        if (!tag.contains(nbtTitleValueStorage))
+            tag.put(nbtTitleValueStorage, new CompoundTag());
+        CompoundTag titleTag = tag.getCompound(nbtTitleValueStorage);
+
+        ResourceLocation location = TitleRegister.getSuffixId(suffix);
+        if (location == null)
+            return;
+
+        titleTag.putString("suffix", location.toString());
     }
 
     public static void refreshDamage(
@@ -440,6 +526,32 @@ public class NBTUtil
         int newDamage = (int) (damage * (1 + factor));
 
         stack.setDamageValue(newDamage);
+    }
+
+    public static void resetEnchant(
+            ItemStack stack
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+
+        if (!tag.contains(nbtEnchantmentStorage))
+            return;
+
+        tag.remove(nbtEnchantmentStorage);
+        tag.put(nbtEnchantmentStorage, new CompoundTag());
+    }
+
+    public static void resetTitle(
+            ItemStack stack
+    )
+    {
+        CompoundTag tag = getModTag(stack);
+
+        if (!tag.contains(nbtTitleValueStorage))
+            return;
+
+        tag.remove(nbtTitleValueStorage);
+        tag.put(nbtTitleValueStorage, new CompoundTag());
     }
 
     public static void serializeAwakenLevel(
@@ -512,7 +624,17 @@ public class NBTUtil
         ResourceLocation qualityLocation = QualityUtil.getQualityId(quality);
         if (qualityLocation == null) throw new IllegalStateException("Illegal quality: not registered");
 
+        addEnchantValue(stack, quality.enchant(), 0);
         tag.getCompound(nbtQualityValueStorage).putString("id", qualityLocation.toString());
+    }
+
+    public static void setEfficiency(
+            ItemStack stack,
+            float efficiency
+    )
+    {
+        CompoundTag tag = stack.getOrCreateTag();
+        tag.putFloat(nbtEfficiencyCapability, efficiency);
     }
 
     public static void setLores(
@@ -552,6 +674,7 @@ public class NBTUtil
     }
 
     public static void updateExp(
+            Player player,
             ItemStack stack,
             float rewardFactor
     )
@@ -559,7 +682,7 @@ public class NBTUtil
         int current = getCurrentExp(stack);
         int max     = getMaxExp(stack);
         Quality quality = deserializeQuality(stack);
-        float nextMaxFactor = quality == null? EquipmentExperience.defaultMaxExperienceFactor: quality.factor();
+        float nextMaxFactor = quality == null? EquipmentExperience.defaultMaxExperienceFactor: quality.upgradeFactor();
 
         while (current >= max)
         {
@@ -575,6 +698,16 @@ public class NBTUtil
 
             current = getCurrentExp(stack);
             max     = getMaxExp(stack);
+
+            player.sendSystemMessage(
+                    Component.translatable(
+                            "chat.congrates_player_tool_upgrade.msg"
+                    ).append(
+                            Component.literal(
+                                    ": " + getCurrentExpLevel(stack)
+                            )
+                    ).withStyle(ChatFormatting.GOLD)
+            );
         }
     }
 }
