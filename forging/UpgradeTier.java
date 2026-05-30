@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 import javax.annotation.Nullable;
 import java.awt.*;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -87,14 +88,14 @@ public interface UpgradeTier {
             this.color = color;
             this.id    = id;
 
-            armor      = Map.of();
-            attack     = Map.of();
-            durability = Map.of();
-            efficiency = Map.of();
-            enchant    = Map.of();
-            fortune    = Map.of();
-            protection = Map.of();
-            speed      = Map.of();
+            armor      = new HashMap<>();
+            attack     = new HashMap<>();
+            durability = new HashMap<>();
+            efficiency = new HashMap<>();
+            enchant    = new HashMap<>();
+            fortune    = new HashMap<>();
+            protection = new HashMap<>();
+            speed      = new HashMap<>();
         }
 
         public static StreamTierBuilder of(Color color, String id)
