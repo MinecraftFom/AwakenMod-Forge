@@ -12,6 +12,7 @@ import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.registries.ForgeRegistries;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.UUID;
@@ -223,8 +224,9 @@ public class AttributeUtil
         Double amount = attr.getDouble("Amount");
         EquipmentSlot slot = EquipmentSlot.byName(attr.getString("Slot"));
         AttributeModifier.Operation operation = AttributeModifier.Operation.fromValue(attr.getInt("Operation"));
+        UUID uuid = UUIDUtil.uuidFromIntArray(attr.getIntArray("UUID"));
 
-        return new AttributeHolder(ForgeRegistries.ATTRIBUTES.getValue(ResourceLocation.parse(id)), null,  slot, amount, operation);
+        return new AttributeHolder(ForgeRegistries.ATTRIBUTES.getValue(ResourceLocation.parse(id)), null,  slot, amount, operation, uuid);
     }
 
     private static AttributeHolder getModifierFromCache(
@@ -256,7 +258,7 @@ public class AttributeUtil
         cns.putString("Slot", holder.slot().getName());
         cns.putDouble("Amount", holder.amount());
         cns.putInt("Operation", holder.operation().toValue());
-        cns.putIntArray("UUID", UUIDUtil.uuidToIntArray(UUID.randomUUID()));
+        cns.putIntArray("UUID", holder.uuid == null? UUIDUtil.uuidToIntArray(UUID.randomUUID()): UUIDUtil.uuidToIntArray(holder.uuid()));
     }
 
     private static void setModifierToCache(
@@ -277,6 +279,18 @@ public class AttributeUtil
             String id,
             EquipmentSlot slot,
             Double amount,
-            AttributeModifier.Operation operation
-    ){}
+            AttributeModifier.Operation operation,
+            @Nullable UUID uuid
+    ){
+        public AttributeHolder(
+                Attribute attr,
+                String id,
+                EquipmentSlot slot,
+                Double amount,
+                AttributeModifier.Operation operation
+        )
+        {
+            this(attr, id, slot, amount, operation, null);
+        }
+    }
 }
