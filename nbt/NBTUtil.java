@@ -13,6 +13,7 @@ import com.fomdev.awaken.title.Prefix;
 import com.fomdev.awaken.title.Suffix;
 import com.fomdev.awaken.title.Title;
 import com.fomdev.awaken.title.TitleRegister;
+import com.fomdev.flib.util.Suggested;
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -22,10 +23,13 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class NBTUtil
 {
@@ -497,6 +501,57 @@ public class NBTUtil
 
         int count = alignmentTag.getInt(alignment.toString()) + amount;
         alignmentTag.putInt(alignment.toString(), count);
+    }
+
+    @Suggested
+    public static void putEnchantmentAlignmentStrict(
+            ItemStack stack,
+            Alignment.AlignmentProvider provider
+    )
+    {
+        List<Aspect.AspectProvider> aspects = List.of(getAspects(stack));
+        Alignment alignment = provider.alignment();
+
+        Map<Aspect, Integer> mapped = new HashMap<>();
+        for (Aspect.AspectProvider prov: aspects)
+        {
+            if (mapped.containsKey(prov.aspect()))
+            {
+                mapped.replace(prov.aspect(), mapped.get(prov.aspect()) + prov.amount());
+            } else
+            {
+                mapped.put(prov.aspect(), prov.amount());
+            }
+        }
+
+        for (Aspect.AspectProvider prov: alignment.aspects())
+        {
+            if (!mapped.containsKey(prov.aspect()))
+                return;
+
+            if (mapped.get(prov.aspect()) < prov.amount())
+                return;
+        }
+
+        putEnchantmentAlignment(stack, provider);
+
+        for (Aspect.AspectProvider prov: alignment.aspects())
+        {
+            putEnchantmentAspect(stack, new Aspect.AspectProvider()
+            {
+                @Override
+                public int amount()
+                {
+                    return -prov.amount();
+                }
+
+                @Override
+                public @NotNull Aspect aspect()
+                {
+                    return prov.aspect();
+                }
+            });
+        }
     }
 
     public static void putEnchantmentAspect(
