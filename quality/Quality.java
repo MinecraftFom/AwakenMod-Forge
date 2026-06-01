@@ -12,7 +12,7 @@ public interface Quality
 
     int                  enchant();
     float                factor();
-    int                  level();
+    float                level();
 
     default int maxUpgradeLevel() { return EquipmentExperience.defaultInitialExperienceRequirement; }
     default float upgradeFactor() { return EquipmentExperience.defaultMaxExperienceFactor; }
@@ -23,7 +23,7 @@ public interface Quality
                     String id,
                     int enchant,
                     float factor,
-                    int level,
+                    float level,
                     ColorPattern pattern,
                     Color... color
             )
@@ -55,7 +55,7 @@ public interface Quality
             }
 
             @Override
-            public int level()
+            public float level()
             {
                 return level;
             }
@@ -73,7 +73,7 @@ public interface Quality
                     String id,
                     int enchant,
                     float factor,
-                    int level,
+                    float level,
                     int maxUpgradeLevel,
                     float upgradeFactor,
                     ColorPattern pattern,
@@ -107,7 +107,7 @@ public interface Quality
             }
 
             @Override
-            public int level()
+            public float level()
             {
                 return level;
             }

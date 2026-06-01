@@ -1,24 +1,21 @@
 package com.fomdev.awaken.quality;
 
-import com.fomdev.awaken.gen.GeneratingMobTypes;
 import com.fomdev.awaken.init.AwakenRPG;
 import com.fomdev.flib.util.Suggested;
 import net.minecraft.resources.ResourceLocation;
 
 import javax.annotation.Nullable;
 import java.awt.*;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.*;
+import java.util.List;
 
-public class QualityUtil
-{
+public class QualityUtil {
     private static final Map<ResourceLocation, Quality> registeredQualities = new HashMap<>();
 
     public static final Quality naive;
     public static final Quality novice;
     public static final Quality prehistoric;
-//    public static final Quality pathetic;
+    //    public static final Quality pathetic;
 //    public static final Quality basic;
 //    public static final Quality started;
 //    public static final Quality learner;
@@ -38,12 +35,14 @@ public class QualityUtil
             Quality quality
     )
     {
-        AtomicReference<ResourceLocation> location = new AtomicReference<>();
-        registeredQualities.forEach((loc, qa) -> {
-            if (qa == quality) location.set(loc);
-        });
-
-        return location.get();
+        for (Map.Entry<ResourceLocation, Quality> entry : registeredQualities.entrySet())
+        {
+            if (entry.getValue().equals(quality))
+            {
+                return entry.getKey();
+            }
+        }
+        return null;
     }
 
     @Nullable
@@ -68,7 +67,7 @@ public class QualityUtil
             String id
     )
     {
-        return "quality."+id+".name";
+        return "quality." + id + ".name";
     }
 
     public static Quality registerQuality(
@@ -80,7 +79,8 @@ public class QualityUtil
         if (registeredQualities.containsKey(location))
             throw new IllegalArgumentException("Invalid register id: " + location + ", already registered");
 
-        return registeredQualities.put(location, quality);
+        registeredQualities.put(location, quality);
+        return quality;
     }
 
     static
@@ -91,7 +91,7 @@ public class QualityUtil
                         "naive",
                         5,
                         0.01F,
-                        1,
+                        110F,
                         Quality.ColorPattern.SINGLE,
                         new Color(0xAA, 0xAA, 0xAA)
                 )
@@ -103,7 +103,7 @@ public class QualityUtil
                         "novice",
                         6,
                         0.012F,
-                        2,
+                        120F,
                         Quality.ColorPattern.SINGLE,
                         new Color(0xAB, 0xAB, 0xAB)
                 )
@@ -115,7 +115,7 @@ public class QualityUtil
                         "prehistoric",
                         8,
                         0.01F,
-                        3,
+                        0.21F,
                         Quality.ColorPattern.MULTIPLE,
                         new Color(0xFF, 0x00, 0x00),
                         new Color(0xFF, 0xFF, 0x00),
@@ -138,5 +138,25 @@ public class QualityUtil
                         new Color(0x00, 0x00, 0xFF)
                 )
         );
+    }
+
+    public static Quality shuffleQuality(
+            Random random,
+            float diffFactor
+    )
+    {
+        float chance = diffFactor * 100; // Get the percentage chance of the diffFactor
+
+        List<Quality> qualities = new ArrayList<>();
+        for (Quality quality: registeredQualities.values())
+        {
+            if (quality.level() <= chance)
+                qualities.add(quality);
+        }
+
+        if (qualities.isEmpty())
+            return null;
+
+        return qualities.get(random.nextInt(qualities.size()));
     }
 }
