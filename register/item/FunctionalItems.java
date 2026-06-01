@@ -10,4 +10,7 @@ public class FunctionalItems
 {
     @ItemHolder.Hold
     public static AbstractItem AWAKEN_LEVEL_DETECTOR = AbstractItem.of("awaken_level_dectector", new Item(new Item.Properties()));
+
+    @ItemHolder.Hold
+    public static AbstractItem AWAKEN_DIFFICULTY_DETECTOR = AbstractItem.of("awaken_difficulty_detector", new Item(new Item.Properties()));
 }
