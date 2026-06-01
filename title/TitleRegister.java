@@ -22,9 +22,9 @@ public class TitleRegister
     private static final Map<ResourceLocation, Suffix> registeredSuffixes = new HashMap<>();
     private static final Map<ResourceLocation, Title> registeredTitles = new HashMap<>();
 
-    private static final Map<Prefix, Integer> leveledPrefixes = new HashMap<>();
-    private static final Map<Suffix, Integer> leveledSuffixes = new HashMap<>();
-    private static final Map<Title, Integer> leveledTitles = new HashMap<>();
+    private static final Map<Prefix, Float> leveledPrefixes = new HashMap<>();
+    private static final Map<Suffix, Float> leveledSuffixes = new HashMap<>();
+    private static final Map<Title, Float> leveledTitles = new HashMap<>();
 
     public static ResourceLocation getPrefixId(Prefix prefix)
     {
@@ -136,26 +136,26 @@ public class TitleRegister
 
     public static void setPrefixGenerateChance(
             Prefix prefix,
-            int level
+            float chance
     )
     {
-        leveledPrefixes.put(prefix, level);
+        leveledPrefixes.put(prefix, chance);
     }
 
-    public static void setSuffixGenerateChace(
+    public static void setSuffixGenerateChance(
             Suffix suffix,
-            int level
+            float chance
     )
     {
-        leveledSuffixes.put(suffix, level);
+        leveledSuffixes.put(suffix, chance);
     }
 
     public static void setTitleGenerateChance(
             Title title,
-            int level
+            float chance
     )
     {
-        leveledTitles.put(title, level);
+        leveledTitles.put(title, chance);
     }
 
     public static void syncStackPrefix(ItemStack stack)
@@ -236,17 +236,19 @@ public class TitleRegister
     public static Prefix shufflePrefix(
             Random random,
             int min,
-            int max
+            int max,
+            float diffFactor
     )
     {
         if (leveledPrefixes.isEmpty())
             return null;
 
-        int lvl = random.nextInt(max - min) + min;
+        int lvl = random.nextInt(Math.max(1, Math.abs(max - min))) + min;
+        float res = lvl * diffFactor;
         List<Prefix> matched = new ArrayList<>();
         for (Prefix prefix: leveledPrefixes.keySet())
         {
-            if (leveledPrefixes.get(prefix) >= lvl)
+            if (leveledPrefixes.get(prefix) >= res)
                 matched.add(prefix);
         }
 
@@ -260,17 +262,19 @@ public class TitleRegister
     public static Suffix shuffleSuffix(
             Random random,
             int min,
-            int max
+            int max,
+            float diffFactor
     )
     {
         if (leveledSuffixes.isEmpty())
             return null;
 
-        int lvl = random.nextInt(max - min) + min;
+        int lvl = random.nextInt(Math.max(1, Math.abs(max - min))) + min;
+        float res = lvl * diffFactor;
         List<Suffix> matched = new ArrayList<>();
         for (Suffix suffix: leveledSuffixes.keySet())
         {
-            if (leveledSuffixes.get(suffix) >= lvl)
+            if (leveledSuffixes.get(suffix) >= res)
                 matched.add(suffix);
         }
 
@@ -284,17 +288,20 @@ public class TitleRegister
     public static Title shuffleTitle(
             Random random,
             int min,
-            int max
+            int max,
+            float diffFactor
     )
     {
         if (leveledTitles.isEmpty())
             return null;
 
-        int lvl = random.nextInt(max - min) + min;
+        int lvl = random.nextInt(Math.max(1, Math.abs(max - min))) + min;
+        float res = lvl * diffFactor;
+
         List<Title> matched = new ArrayList<>();
         for (Title title: leveledTitles.keySet())
         {
-            if (leveledTitles.get(title) >= lvl)
+            if (leveledTitles.get(title) >= res)
                 matched.add(title);
         }
 
