@@ -19,7 +19,6 @@ import org.jetbrains.annotations.Range;
 import java.awt.*;
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class ForgeUtils
 {
@@ -64,14 +63,13 @@ public class ForgeUtils
                     UpgradeTier tier
             )
     {
-        AtomicReference<ResourceLocation> location = new AtomicReference<>();
-
-        registeredTiers.forEach((k, v) -> {
-            if (v.tier() == tier)
-                location.set(k);
-        });
-
-        return location.get();
+        for (Map.Entry<ResourceLocation, UpgradeTier.CompoundTierContainer> entry : registeredTiers.entrySet())
+        {
+            if (entry.getValue().tier().equals(tier)) {
+                return entry.getKey();
+            }
+        }
+        return null;
     }
 
     @Nullable
@@ -564,7 +562,11 @@ public class ForgeUtils
         if (registeredTiers.isEmpty())
             return new UpgradeTier[]{};
 
-        int count = random.nextInt(Math.abs(lvl / (lvl - max)));
+        int offset = Math.abs(lvl / (lvl - max));
+        if (offset == 0)
+            offset = 1;
+
+        int count = random.nextInt(offset);
 
         List<UpgradeTier> tiers = new ArrayList<>();
 
