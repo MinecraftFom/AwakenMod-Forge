@@ -4,6 +4,7 @@ import com.fomdev.flib.util.Suggested;
 import net.minecraft.world.item.*;
 import net.minecraft.world.level.ItemLike;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Range;
 
 import javax.annotation.Nullable;
 import java.awt.*;
@@ -495,12 +496,12 @@ public interface UpgradeTier {
             this(value, operation.operation);
         }
 
-        int operation()
+        public int operation()
         {
             return operation;
         }
 
-        T value()
+        public T value()
         {
             return value;
         }

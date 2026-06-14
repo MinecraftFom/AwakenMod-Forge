@@ -26,4 +26,10 @@ public class RegisterEvent extends Event
 
         return false;
     }
+
+    @Override
+    public boolean isCancelable()
+    {
+        return false;
+    }
 }

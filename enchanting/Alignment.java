@@ -19,7 +19,6 @@ public interface Alignment
     UpgradeTier.TierModifierSlot[] slots();
     Class<? extends Event> evtRequired();
     void onEvent(@NotNull Event event, int lvl);
-    int  maxLevel();
 
     static Alignment of(
             String id,
@@ -27,7 +26,6 @@ public interface Alignment
             UpgradeTier.TierModifierSlot[] slots,
             List<Aspect.AspectProvider> requiredAspects,
             Class<? extends Event> eventRequired,
-            int maxLevel,
             BiConsumer<Event, Integer> procedure
     )
     {
@@ -68,12 +66,6 @@ public interface Alignment
             {
                 if (event.getClass().isInstance(this.evtRequired()))
                     procedure.accept(event, lvl);
-            }
-
-            @Override
-            public int maxLevel()
-            {
-                return maxLevel;
             }
         };
     }

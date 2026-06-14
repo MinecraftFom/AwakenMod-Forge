@@ -2,17 +2,15 @@ package com.fomdev.awaken.awaken;
 
 import com.fomdev.awaken.event.RegisterEvent;
 import com.fomdev.awaken.init.Awaken;
-import com.fomdev.awaken.init.AwakenContent;
 import com.fomdev.awaken.init.AwakenRPG;
+import com.fomdev.awaken.register.AwakenRegistries;
+import com.fomdev.flib.interpreter.ForceLoader;
 import com.fomdev.flib.util.Suggested;
-import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -21,9 +19,6 @@ import java.util.concurrent.atomic.AtomicReference;
 @Mod.EventBusSubscriber(modid = AwakenRPG.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class AwakenLevelRegister
 {
-    // Injected a new registry event for awaken levels (WILL FREEZE AFTER CALLING!!!)
-    public static final ResourceKey<Registry<AwakenLevel>> AWAKEN_LEVEL = ResourceKey.createRegistryKey(ResourceLocation.fromNamespaceAndPath(AwakenContent.MODID, "awaken_level"));
-
     private static final Map<ResourceLocation, AwakenLevel> registeredLevels = new HashMap<>();
 
     private static Map<ResourceLocation, AwakenLevel> frozenMap = null;
@@ -158,7 +153,7 @@ public class AwakenLevelRegister
             throw new IllegalArgumentException("Duplicated registry location: " + location);
 
         if (frozenMap != null)
-            throw new IllegalStateException("Freezed registries: unable to register");
+            throw new IllegalStateException("Frozen registries: unable to register");
 
         return registeredLevels.put(location, level);
     }
@@ -166,9 +161,12 @@ public class AwakenLevelRegister
     @SubscribeEvent
     public static void onFmlCommonSetup(FMLCommonSetupEvent event)
     {
-        Awaken.LOGGER.info("Freezing register on FMLCommonSetup");
-        MinecraftForge.EVENT_BUS.fire(new RegisterEvent(AWAKEN_LEVEL));
+        Awaken.LOGGER.info("Force loading classes with signature {}", AwakenRegistries.SIG_AWAKEN_LEVEL);
+        ForceLoader.forceLoad(AwakenRegistries.SIG_AWAKEN_LEVEL);
 
+        MinecraftForge.EVENT_BUS.fire(new RegisterEvent(AwakenRegistries.AWAKEN_LEVEL));
+
+        Awaken.LOGGER.info("Freezing register on FML-Common-Setup");
         concludeSortedData();
     }
 
@@ -239,11 +237,5 @@ public class AwakenLevelRegister
     private static void frozeMap()
     {
         frozenMap = new HashMap<>(registeredLevels);
-    }
-
-    @ApiStatus.Internal
-    public static void printCaches()
-    {
-        Awaken.LOGGER.info("SORTED: " + Arrays.toString(sortedFrozenCache.stream().map(v -> v.id() + v.min()).toArray()));
     }
 }

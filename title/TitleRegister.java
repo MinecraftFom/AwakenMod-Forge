@@ -1,21 +1,27 @@
 package com.fomdev.awaken.title;
 
+import com.fomdev.awaken.event.RegisterEvent;
+import com.fomdev.awaken.init.Awaken;
 import com.fomdev.awaken.init.AwakenRPG;
 import com.fomdev.awaken.nbt.AttributeUtil;
 import com.fomdev.awaken.nbt.NBTUtil;
 import com.fomdev.awaken.quality.Quality;
+import com.fomdev.awaken.register.AwakenRegistries;
+import com.fomdev.flib.interpreter.ForceLoader;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 
 import java.util.*;
 
-@Mod.EventBusSubscriber(modid = AwakenRPG.MODID)
+@Mod.EventBusSubscriber(modid = AwakenRPG.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class TitleRegister
 {
     private static final Map<ResourceLocation, Prefix> registeredPrefixes = new HashMap<>();
@@ -26,12 +32,16 @@ public class TitleRegister
     private static final Map<Suffix, Float> leveledSuffixes = new HashMap<>();
     private static final Map<Title, Float> leveledTitles = new HashMap<>();
 
+    public static boolean prefixFrozen = false;
+    public static boolean suffixFrozen = false;
+    public static boolean titleFrozen = false;
+
     public static ResourceLocation getPrefixId(Prefix prefix)
     {
-        for (ResourceLocation location: registeredPrefixes.keySet())
+        for (Map.Entry<ResourceLocation, Prefix> entry: registeredPrefixes.entrySet())
         {
-            if (registeredPrefixes.get(location) == prefix)
-                return location;
+            if (entry.getValue() == prefix)
+                return entry.getKey();
         }
 
         return null;
@@ -39,10 +49,10 @@ public class TitleRegister
 
     public static ResourceLocation getSuffixId(Suffix suffix)
     {
-        for (ResourceLocation location: registeredSuffixes.keySet())
+        for (Map.Entry<ResourceLocation, Suffix> entry: registeredSuffixes.entrySet())
         {
-            if (registeredSuffixes.get(location) == suffix)
-                return location;
+            if (entry.getValue() == suffix)
+                return entry.getKey();
         }
 
         return null;
@@ -50,10 +60,10 @@ public class TitleRegister
 
     public static ResourceLocation getTitleId(Title title)
     {
-        for (ResourceLocation location: registeredTitles.keySet())
+        for (Map.Entry<ResourceLocation, Title> entry: registeredTitles.entrySet())
         {
-            if (registeredTitles.get(location) == title)
-                return location;
+            if (entry.getValue() == title)
+                return entry.getKey();
         }
 
         return null;
@@ -106,32 +116,38 @@ public class TitleRegister
 
     public static Prefix register(String modid, Prefix prefix)
     {
-        ResourceLocation location = ResourceLocation.fromNamespaceAndPath(modid, prefix.id());
+        if (prefixFrozen)
+            throw new IllegalStateException("Prefix register state frozen");
 
+        ResourceLocation location = ResourceLocation.fromNamespaceAndPath(modid, prefix.id());
         if (registeredPrefixes.containsKey(location))
             throw new IllegalStateException("Registered prefix: " + location);
-
-        return registeredPrefixes.put(location, prefix);
+        registeredPrefixes.put(location, prefix);
+        return prefix;
     }
 
     public static Suffix register(String modid, Suffix suffix)
     {
-        ResourceLocation location = ResourceLocation.fromNamespaceAndPath(modid, suffix.id());
+        if (suffixFrozen)
+            throw new IllegalStateException("Suffix register state frozen");
 
+        ResourceLocation location = ResourceLocation.fromNamespaceAndPath(modid, suffix.id());
         if (registeredSuffixes.containsKey(location))
             throw new IllegalStateException("Registered suffix: " + location);
-
-        return registeredSuffixes.put(location, suffix);
+        registeredSuffixes.put(location, suffix);
+        return suffix;
     }
 
     public static Title register(String modid, Title title)
     {
-        ResourceLocation location = ResourceLocation.fromNamespaceAndPath(modid, title.id());
+        if (titleFrozen)
+            throw new IllegalStateException("Title register state frozen");
 
+        ResourceLocation location = ResourceLocation.fromNamespaceAndPath(modid, title.id());
         if (registeredTitles.containsKey(location))
             throw new IllegalStateException("Registered title: " + location);
-
-        return registeredTitles.put(location, title);
+        registeredTitles.put(location, title);
+        return title;
     }
 
     public static void setPrefixGenerateChance(
@@ -158,15 +174,18 @@ public class TitleRegister
         leveledTitles.put(title, chance);
     }
 
+    @Deprecated(since = "0.0.2", forRemoval = true)
     public static void syncStackPrefix(ItemStack stack)
     {
         Prefix prefix = NBTUtil.deserializePrefixes(stack);
         if (prefix == null) return;
 
         NBTUtil.setMaxDamage(stack, stack.getMaxDamage() + prefix.additionalDurability());
+        NBTUtil.resetEnchant(stack);
         Arrays.stream(prefix.aspects()).forEach(aspect -> NBTUtil.putEnchantmentAspect(stack, aspect));
     }
 
+    @Deprecated(since = "0.0.2", forRemoval = true)
     public static void syncStackSuffix(ItemStack stack)
     {
         Suffix suffix = NBTUtil.deserializeSuffixes(stack);
@@ -175,62 +194,56 @@ public class TitleRegister
         NBTUtil.setMaxDamage(stack, stack.getMaxDamage() + suffix.additionalDurability());
     }
 
+    @Deprecated(since = "0.0.2", forRemoval = true)
     public static void syncStackTitle(ItemStack stack)
     {
         Quality quality = NBTUtil.deserializeQuality(stack);
         Title title = NBTUtil.deserializeTitle(stack);
+        Suffix suffix = NBTUtil.deserializeSuffixes(stack);
         if (quality == null) return;
         if (title == null) return;
 
         int currDamage = stack.getMaxDamage();
         NBTUtil.setMaxDamage(stack, currDamage + title.additionalDurability());
 
-        for (Title.CompoundAttribute attr: title.attrs(quality.factor()))
-        {
-            AttributeUtil.putAttribute(
-                    stack,
-                    attr.attr(),
-                    quality.id() + attr.attr().toString(),
-                    "titleutil",
-                    attr.amount() * quality.factor(),
-                    attr.operation(),
-                    stack.getEquipmentSlot()
-            );
-        }
+        AttributeUtil.delNamespace(stack, "titleutil"); // Makes sure attributes won't add together
+
+        Title.CompoundAttribute attr = title.attrs(quality.factor());
+        AttributeUtil.putAttribute(
+                stack,
+                attr.attr(),
+                quality.id() + attr.attr().toString(),
+                "titleutil",
+                attr.amount() * quality.factor() * (suffix == null || suffix.triggerAttribute() == null || suffix.triggerAttribute() != attr.attr()? 1.0F: suffix.modifyFactor()),
+                attr.operation(),
+                stack.getEquipmentSlot()
+        );
     }
 
     @SubscribeEvent
-    public static void handleSuffixEvent(TickEvent.PlayerTickEvent event)
+    public static void register(FMLCommonSetupEvent event)
     {
-        Player player = event.player;
-        if (player == null)
-            return;
+        String running = "Running '{}' registry";
 
-        ItemStack helmet = player.getItemBySlot(EquipmentSlot.HEAD);
-        ItemStack chest = player.getItemBySlot(EquipmentSlot.CHEST);
-        ItemStack legs = player.getItemBySlot(EquipmentSlot.LEGS);
-        ItemStack feet = player.getItemBySlot(EquipmentSlot.FEET);
-        ItemStack main = player.getItemBySlot(EquipmentSlot.MAINHAND);
-        ItemStack off = player.getItemBySlot(EquipmentSlot.OFFHAND);
+        Awaken.LOGGER.info("TR> Registering & Freezing on FML-Common-Setup");
 
-        handleItemEffects(helmet, player);
-        handleItemEffects(chest, player);
-        handleItemEffects(legs, player);
-        handleItemEffects(feet, player);
-        handleItemEffects(main, player);
-        handleItemEffects(off, player);
-    }
+        Awaken.LOGGER.info(running, AwakenRegistries.AWAKEN_PREFIX);
+        ForceLoader.forceLoad(AwakenRegistries.SIG_AWAKEN_PREFIX);
+        MinecraftForge.EVENT_BUS.fire(new RegisterEvent(AwakenRegistries.AWAKEN_PREFIX));
+        prefixFrozen = true;
+        Awaken.LOGGER.info("TR> Prefix register state frozen");
 
-    private static void handleItemEffects(ItemStack stack, Player player)
-    {
-        if (stack.getItem() == Items.AIR)
-            return;
+        Awaken.LOGGER.info(running, AwakenRegistries.AWAKEN_SUFFIX);
+        ForceLoader.forceLoad(AwakenRegistries.SIG_AWAKEN_SUFFIX);
+        MinecraftForge.EVENT_BUS.fire(new RegisterEvent(AwakenRegistries.AWAKEN_SUFFIX));
+        suffixFrozen = true;
+        Awaken.LOGGER.info("TR> Suffix register state frozen");
 
-        Suffix suffix = NBTUtil.deserializeSuffixes(stack);
-        if (suffix == null)
-            return;
-
-        Arrays.stream(suffix.effects()).forEach(player::addEffect);
+        Awaken.LOGGER.info(running, AwakenRegistries.AWAKEN_TITLE);
+        ForceLoader.forceLoad(AwakenRegistries.SIG_AWAKEN_TITLE);
+        MinecraftForge.EVENT_BUS.fire(new RegisterEvent(AwakenRegistries.AWAKEN_TITLE));
+        titleFrozen = true;
+        Awaken.LOGGER.info("TR> Title register state frozen");
     }
 
     public static Prefix shufflePrefix(

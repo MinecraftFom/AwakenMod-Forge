@@ -1,9 +1,13 @@
 package com.fomdev.awaken.forging;
 
-import com.fomdev.awaken.init.AwakenRPG;
+import com.fomdev.awaken.event.RegisterEvent;
+import com.fomdev.awaken.init.Awaken;
+import com.fomdev.awaken.init.AwakenContent;
 import com.fomdev.awaken.nbt.AttributeUtil;
 import com.fomdev.awaken.nbt.NBTUtil;
 import com.fomdev.awaken.quality.Quality;
+import com.fomdev.awaken.register.AwakenRegistries;
+import com.fomdev.flib.interpreter.ForceLoader;
 import com.fomdev.flib.util.Suggested;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -11,8 +15,11 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.ArmorItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ItemLike;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
 
@@ -20,23 +27,13 @@ import java.awt.*;
 import java.util.*;
 import java.util.List;
 
+@Mod.EventBusSubscriber(modid = AwakenContent.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class ForgeUtils
 {
     private static final Map<ResourceLocation, UpgradeTier.CompoundTierContainer> registeredTiers = new HashMap<>();
+    private static boolean frozen = false;
 
     public static final int defaultMaxForgingCounts = 2;
-
-    // Public fields that announces default capabilities for the tiers
-    // Including vanilla tiers
-    // TODO: append custom tiers
-    // TODO: append compat mod tiers
-    public static final UpgradeTier coalTier;
-    public static final UpgradeTier copperTier;
-    public static final UpgradeTier diamondTier;
-    public static final UpgradeTier goldTier;
-    public static final UpgradeTier ironTier;
-    public static final UpgradeTier netheriteTier;
-    public static final UpgradeTier obsidianTier;
 
     public static ItemStack forgeStack
             (
@@ -125,6 +122,9 @@ public class ForgeUtils
                     UpgradeTier.CompoundTierContainer container
             )
     {
+        if (frozen)
+            throw new IllegalStateException("Forge Tier register state frozen");
+
         if (registeredTiers.containsKey(location))
             throw new IllegalStateException("Invalid register id: " + location + ", already registered.");
 
@@ -152,6 +152,16 @@ public class ForgeUtils
             )
     {
         return registerTier(ResourceLocation.fromNamespaceAndPath(modid, name), tier, material);
+    }
+
+    @SubscribeEvent
+    public static void register(FMLCommonSetupEvent event)
+    {
+        Awaken.LOGGER.info("FU> Freezing registry on FML-Common-Setup");
+        ForceLoader.forceLoad(AwakenRegistries.SIG_AWAKEN_TIER);
+        MinecraftForge.EVENT_BUS.fire(new RegisterEvent(AwakenRegistries.AWAKEN_TIER));
+        frozen = true;
+        Awaken.LOGGER.info("FU> Forging Tier registry state frozen");
     }
 
     private static double constructNumber
@@ -299,46 +309,10 @@ public class ForgeUtils
         Quality quality = NBTUtil.deserializeQuality(stack);
         float factor = quality == null? 0.0F: quality.factor();
 
-        Map<UpgradeTier.TierModifierSlot, UpgradeTier.CompoundTierModifier<Double>>     armor;
-        Map<UpgradeTier.TierModifierSlot, UpgradeTier.CompoundTierModifier<Integer>>    durability;
         Map<UpgradeTier.TierModifierSlot, UpgradeTier.CompoundTierModifier<Integer>>    enchant;
-        Map<UpgradeTier.TierModifierSlot, UpgradeTier.CompoundTierModifier<Float>>      protection;
-
-        if ((armor = tier.armor()) != null && armor.get(slot) != null)
-            AttributeUtil.putAttribute(
-                    stack,
-                    Attributes.ARMOR,
-                    tier.id() + "_armor",
-                    "forgeutil",
-                    armor.get(slot).value() * (1 + factor),
-                    constructOperation(armor.get(slot).operation()),
-                    stack.getEquipmentSlot()
-            );
-
-        if ((durability = tier.durability()) != null && durability.get(slot) != null)
-        {
-            int original = stack.getMaxDamage();
-            int result = (int) (directCalculateInteger(original, durability.get(slot).value(), durability.get(slot).operation()) * (1 + factor));
-
-            NBTUtil.setMaxDamage(
-                    stack,
-                    result
-            );
-        }
 
         if ((enchant = tier.enchant()) != null && enchant.get(slot) != null)
             NBTUtil.addEnchantValue(stack, (int) (enchant.get(slot).value() * (1 + factor)), enchant.get(slot).operation());
-
-        if ((protection = tier.protection()) != null && protection.get(slot) != null) // Actually strength
-            AttributeUtil.putAttribute(
-                    stack,
-                    Attributes.ARMOR_TOUGHNESS,
-                    tier.id() + "_protection",
-                    "forgeutil",
-                    protection.get(slot).value().doubleValue() * (1 + factor),
-                    constructOperation(protection.get(slot).operation()),
-                    stack.getEquipmentSlot()
-            );
 
         return stack;
     }
@@ -362,34 +336,8 @@ public class ForgeUtils
         Quality quality = NBTUtil.deserializeQuality(stack);
         float factor = quality == null? 0.0F: quality.factor();
 
-        Map<UpgradeTier.TierModifierSlot, UpgradeTier.CompoundTierModifier<Float>>   attack;
-        Map<UpgradeTier.TierModifierSlot, UpgradeTier.CompoundTierModifier<Integer>> durability;
         Map<UpgradeTier.TierModifierSlot, UpgradeTier.CompoundTierModifier<Float>>   efficiency;
         Map<UpgradeTier.TierModifierSlot, UpgradeTier.CompoundTierModifier<Integer>> enchant;
-        Map<UpgradeTier.TierModifierSlot, UpgradeTier.CompoundTierModifier<Float>>   fortune;
-        Map<UpgradeTier.TierModifierSlot, UpgradeTier.CompoundTierModifier<Double>>  speed;
-
-        if ((attack = tier.attack()) != null && attack.get(slot) != null)
-            AttributeUtil.putAttribute(
-                    stack,
-                    Attributes.ATTACK_DAMAGE,
-                    tier.id() + "_attack_damage",
-                    "forgeutil",
-                    attack.get(slot).value().doubleValue() * (1 + factor),
-                    constructOperation(attack.get(slot).operation()),
-                    stack.getEquipmentSlot()
-            );
-
-        if ((durability = tier.durability()) != null && durability.get(slot) != null)
-        {
-            int original = stack.getMaxDamage();
-            int result = (int) (directCalculateInteger(original, durability.get(slot).value(), durability.get(slot).operation()) * (1 + factor));
-
-            NBTUtil.setMaxDamage(
-                    stack,
-                    result
-            );
-        }
 
         if ((efficiency = tier.efficiency()) != null && efficiency.get(slot) != null)
         {
@@ -411,146 +359,7 @@ public class ForgeUtils
         if ((enchant = tier.enchant()) != null && enchant.get(slot) != null)
             NBTUtil.addEnchantValue(stack, (int) (enchant.get(slot).value() * (1 + factor)), enchant.get(slot).operation());
 
-        if ((fortune = tier.fortune()) != null && fortune.get(slot) != null)
-        {
-            AttributeUtil.putAttribute(
-                    stack,
-                    Attributes.LUCK,
-                    tier.id() + "_fortune_mainhand",
-                    "forgeutil",
-                    fortune.get(slot).value().doubleValue() * (1 + factor),
-                    constructOperation(fortune.get(slot).operation()),
-                    EquipmentSlot.MAINHAND
-            );
-
-            AttributeUtil.putAttribute(
-                    stack,
-                    Attributes.LUCK,
-                    tier.id() + "_fortune_offhand",
-                    "forgeutil",
-                    fortune.get(slot).value().doubleValue() * (1 + factor),
-                    constructOperation(fortune.get(slot).operation()),
-                    EquipmentSlot.OFFHAND
-            );
-        }
-
-        if ((speed = tier.speed()) != null)
-            AttributeUtil.putAttribute(
-                    stack,
-                    Attributes.ATTACK_SPEED,
-                    tier.id() + "_attack_speed",
-                    "forgeutil",
-                    speed.get(slot).value() * (1 + factor),
-                    constructOperation(speed.get(slot).operation()),
-                    EquipmentSlot.MAINHAND
-            );
-
         return stack;
-    }
-
-    static
-    {
-        // Building vanilla support
-        // Please don't ask why the
-        // mod id belongs to awaken
-        // mod, I don't know either
-        // Coal support
-        coalTier = registerTier( // C + 4
-                AwakenRPG.MODID,
-                "coal",
-                UpgradeTier.StreamTierBuilder.of(Color.BLACK, "coal")
-                        .setEfficiencySingle(UpgradeTier.all, (param) -> 0.5)
-                        .setSpeedSingle(UpgradeTier.all, (param) -> 1)
-                        .build(),
-                Items.COAL
-        );
-
-        // Copper support
-        copperTier = registerTier( // Cu + 1 / + 2
-                AwakenRPG.MODID,
-                "copper",
-                UpgradeTier.StreamTierBuilder.of(Color.ORANGE, "copper")
-                        .setAttackSingle(UpgradeTier.tools, (param) -> 1.75) // hmm... copper hurts? doesn't it? CuO may bring unexpected biotic infection
-                        .build(),
-                Items.COPPER_INGOT
-        );
-
-        diamondTier = registerTier( // C + 1
-                AwakenRPG.MODID,
-                "diamond",
-                UpgradeTier.StreamTierBuilder.of(Color.CYAN, "diamond")
-                        .setArmorSingle(UpgradeTier.armors, (param) -> 1.25F)
-                        .setDurabilityCompound(UpgradeTier.all, (param) -> new UpgradeTier.CompoundIntegerModifier(2.25, UpgradeTier.TierModifierOperation.MULTIPLY))
-                        .setEfficiencyCompound(UpgradeTier.tools, (param) -> new UpgradeTier.CompoundFloatModifier(1.05F, UpgradeTier.TierModifierOperation.MULTIPLY))
-                        .setEnchantSingle(UpgradeTier.all, (param) -> 6)
-                        .setFortuneCompound(UpgradeTier.tools, (param) -> new UpgradeTier.CompoundFloatModifier(1.25F, UpgradeTier.TierModifierOperation.MULTIPLY))
-                        .setProtectionSingle(UpgradeTier.armors, (param) -> 0.5F)
-                        .setSpeedSingle(UpgradeTier.tools, (param) -> 1.75F)
-                        .build(),
-                Items.DIAMOND
-        );
-
-        // Gold support
-        goldTier = registerTier(
-                AwakenRPG.MODID,
-                "gold",
-                UpgradeTier.StreamTierBuilder.of(Color.YELLOW, "gold")
-                        .setDurabilityCompound(UpgradeTier.all, (param) -> new UpgradeTier.CompoundIntegerModifier(60, UpgradeTier.TierModifierOperation.MINUS))
-                        .setEnchantSingle(UpgradeTier.all, (param) -> 10)
-                        .setFortuneCompound(UpgradeTier.tools, (param) -> new UpgradeTier.CompoundFloatModifier(1.5F, UpgradeTier.TierModifierOperation.MULTIPLY))
-                        .build(),
-                Items.GOLD_INGOT,
-                Items.GOLD_NUGGET
-        );
-
-        // Iron support
-        ironTier = registerTier(
-                AwakenRPG.MODID,
-                "iron",
-                UpgradeTier.StreamTierBuilder.of(Color.LIGHT_GRAY, "iron")
-                        .setAttackSingle(UpgradeTier.tools, (param) -> 1.75F)
-                        .setDurabilityCompound(UpgradeTier.all, (param) -> new UpgradeTier.CompoundIntegerModifier(1.35F, UpgradeTier.TierModifierOperation.MULTIPLY))
-                        .setProtectionCompound(UpgradeTier.armors, (param) -> new UpgradeTier.CompoundFloatModifier(1.05F, UpgradeTier.TierModifierOperation.MULTIPLY))
-                        .setSpeedCompound(UpgradeTier.tools, (param) -> new UpgradeTier.CompoundDoubleModifier(0.1, UpgradeTier.TierModifierOperation.MINUS))
-                        .build(),
-                Items.IRON_NUGGET,
-                Items.IRON_INGOT
-        );
-
-        // Netherite support
-        netheriteTier = registerTier(
-                AwakenRPG.MODID,
-                "netherite",
-                UpgradeTier.StreamTierBuilder.of(Color.DARK_GRAY, "netherite")
-                        .setArmorSingle(UpgradeTier.armors, (param) -> 1.35F)
-                        .setDurabilityCompound(UpgradeTier.all, (param) -> new UpgradeTier.CompoundIntegerModifier(5.4F, UpgradeTier.TierModifierOperation.MULTIPLY))
-                        .setEfficiencyCompound(UpgradeTier.tools, (param) -> new UpgradeTier.CompoundFloatModifier(1.25F, UpgradeTier.TierModifierOperation.MULTIPLY))
-                        .setEnchantSingle(UpgradeTier.all, (param) -> 10)
-                        .setFortuneCompound(UpgradeTier.tools, (param) -> new UpgradeTier.CompoundFloatModifier(1.35F, UpgradeTier.TierModifierOperation.MULTIPLY))
-                        .setProtectionSingle(UpgradeTier.armors, (param) -> 2)
-                        .setSpeedSingle(UpgradeTier.tools, (param) -> 1.5F)
-                        .build(),
-                Items.NETHERITE_INGOT
-        );
-
-        // Obsidian Support
-        // As we know as a common sense,
-        // obsidian is fragile, isn't it?
-        obsidianTier = registerTier(
-                AwakenRPG.MODID,
-                "obsidian",
-                UpgradeTier.StreamTierBuilder.of(Color.MAGENTA, "obsidian")
-                        .setArmorSingle(UpgradeTier.armors, (param) -> 1.5F)
-                        .setDurabilityCompound(UpgradeTier.all, (param) -> new UpgradeTier.CompoundIntegerModifier(2.1F, UpgradeTier.TierModifierOperation.MULTIPLY))
-                        .setEfficiencyCompound(UpgradeTier.tools, (param) -> new UpgradeTier.CompoundFloatModifier(3.4F, UpgradeTier.TierModifierOperation.MULTIPLY))
-                        .setEnchantSingle(UpgradeTier.all, (param) -> 20)
-                        .setFortuneCompound(UpgradeTier.tools, (param) -> new UpgradeTier.CompoundFloatModifier(1.34F, UpgradeTier.TierModifierOperation.MULTIPLY))
-                        .setProtectionSingle(UpgradeTier.armors, (param) -> 3.2F)
-                        .setSpeedSingle(UpgradeTier.tools, (param) -> 2.6F)
-                        .build(),
-                Items.CRYING_OBSIDIAN,
-                Items.OBSIDIAN
-        );
     }
 
     public static UpgradeTier[] shuffle(

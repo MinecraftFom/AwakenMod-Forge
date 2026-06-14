@@ -793,6 +793,17 @@ public class NBTUtil
         tag.getCompound(nbtExpValueStorage).putInt("max", exp);
     }
 
+    public static void setTrim(
+            ItemStack stack,
+            ResourceLocation material,
+            ResourceLocation pattern
+    )
+    {
+        CompoundTag tag = stack.getOrCreateTagElement("Trim");
+        tag.putString("material", material.toString());
+        tag.putString("pattern", pattern.toString());
+    }
+
     public static void updateExp(
             Player player,
             ItemStack stack,
