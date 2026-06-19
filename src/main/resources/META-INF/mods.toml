@@ -1,0 +1,72 @@
+# Notice: Fom created this mod when he was sleeping, and was woken by his mother
+
+# Information: Fom is not really good at English ('cause I'm Chinese). If any spelling or grammar mistake you have found, please contact me on MinecraftFom477@gmail.com
+# I might not often check my mail, 'cause I'm a student who is extremely busy and lack in time
+
+# Information: Fom is not really good at Java, and this is his first mod. If anything wrong you have found, please also contact me on MinecraftFom477@gmail.com, I would
+# probably commit the bug fix into the next version of the version-hotfix
+
+# Credits:
+# @Fomdev
+# @Chris_cll
+# @Modic_M
+# @Sixawns
+# @SukISu117
+
+modLoader = "javafml"
+loaderVersion = "${loader_version_range}"
+license = "${mod_license}"
+
+[[mods]]
+modId = "awaken"
+version = "0.0.1"
+displayName = "Awaken"
+authors = "@Fomdev, @Chris_cll (Chris), @Modic_M (末地c_M), @SixAwns (无为), @SukISu117 (黑塔)"
+description = '''What a refreshing and satisfying sleep... wtf?'''
+
+[[mods]]
+modId = "awaken_rpg"
+version = "0.0.1"
+displayName = "Awaken: RPG"
+# Special thanks to @Chris_cll, for Algorthim support ('cause my algorthim skills are like the poop floating in your toilet)
+# Information: SukISu117's QQ ID is '黑塔', just the same name of the charactor in Honkai: Star Rail. I definetely don't mean
+# to copy her name into my mod toml file. (For further reasons, she just loved the charactor, so she changed her id into this)
+
+# Owner: @Fomdev (Fom477)
+# Code: @Fomdev (Fom477), @SixAwns (无为) @Chris_cll (Chris)
+# Scripts: @Fomdev (Fom477), @SixAwns (无为), @SukISu117 (黑塔)
+# Insp: @SixAwns (无为), @SukISu117 (黑塔)
+authors = "@Fomdev, @SixAwns (无为), @SukISu117 (黑塔), @Chris_cll"
+description = '''Placeholder mod for Awaken rpg module'''
+
+[[mods]]
+modId = "awaken_content"
+version = "0.0.1"
+displayName = "Awaken: Content"
+# Owner: @Fomdev (Fom477)
+# Code: @Fomdev (Fom477), @Modic_M (末地c_M)
+# Scripts: @Fomdev (Fom477), @Modic_M (末地c_M)
+# Insp: @Modic_M (末地c_M)
+authors = "@Fomdev, @Modic_M (末地c_M)"
+description = '''Placeholder mod for Awaken registered contents'''
+
+[[dependencies."awaken"]]
+modId = "forge"
+mandatory = true
+versionRange = "${forge_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies."awaken"]]
+modId = "minecraft"
+mandatory = true
+versionRange = "${minecraft_version_range}"
+ordering = "NONE"
+side = "BOTH"
+
+[[depencencies."awaken"]]
+modId = "fogotlib"
+mandatory = true
+versionRange = "[0.0.1, )"
+ordering = "BEFORE"
+side = "CLIENT"
