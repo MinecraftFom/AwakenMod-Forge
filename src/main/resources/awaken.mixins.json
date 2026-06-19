@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.fomdev.awaken.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "awaken.refmap.json",
+  "plugin": "com.llamalad7.mixinextras.platform.forge.MixinExtrasConfigPlugin",
+  "mixins": [
+    "MixinEfficiencyCapability",
+    "MixinEnchantment",
+    "MixinEnchantmentDataGather",
+    "MixinItemStack",
+    "MixinAttributesDataGather",
+    "MixinTrimMaterialDataGather",
+    "MixinTrimMaterialRegister",
+    "MixinTrimPatternDataGather"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
