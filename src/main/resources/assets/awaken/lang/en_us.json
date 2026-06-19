@@ -1,0 +1,23 @@
+{
+  "chat.congrates_player_tool_upgrade.msg": "Your tool has been upgraded into a new level! Name",
+  "chat.congrates_player_upgrade.msg": "Congratulations for upgrading to a new level",
+  "chat.current_awaken_level.err": "You Have Not Awakened...",
+  "chat.current_awaken_level.msg": "Your Current Awaken Level: ",
+  "chat.difficulty.info": "Current Difficulty",
+
+  "prefix.ordinary.name": "Ordinarily",
+
+  "quality.infinity.name": "Infinite",
+  "quality.naive.name": "Naive",
+
+  "suffix.ordinary.name": "Of Ordination",
+
+  "title.ordinary.name": "Ordinary",
+
+  "tooltip.debug_use.warning": "Only For Debugging Purposes Or Error Feedback Usages.",
+  "tooltip.forging_slots.msg": "Forging slots",
+  "tooltip.next_level.msg": "Next Level Factor: ",
+  "tooltip.quality.msg": "Tool Quality: ",
+  "tooltip.toss_all_to_eliminate.msg": "Toss all (Ctrl+Q) to eliminate the group",
+  "tooltip.toss_to_use.msg": "Toss This Item To Use It."
+}

@@ -1,0 +1,18 @@
+{
+  "chat.congrates_player_tool_upgrade.msg": "你的工具升级了！ 工具名",
+  "chat.congrates_player_upgrade.msg": "恭喜！您成功升级了！",
+  "chat.current_awaken_level.err": "您似乎还未觉醒",
+  "chat.current_awaken_level.msg": "您的觉醒等级: ",
+  "chat.difficulty.info": "当前难度",
+  "prefix.ordinary.name": "无为的",
+  "quality.infinity.name": "无尽",
+  "quality.naive.name": "天真",
+  "suffix.ordinary.name": "默默无闻",
+  "title.ordinary.name": "平凡",
+  "tooltip.debug_use.warning": "仅用于调试和错误反馈用途！",
+  "tooltip.forging_slots.msg": "镶嵌栏",
+  "tooltip.next_level.msg": "下一级增长倍率: ",
+  "tooltip.quality.msg": "装备品质: ",
+  "tooltip.toss_all_to_eliminate.msg": "Ctrl+Q 丢出整组以丢弃",
+  "tooltip.toss_to_use.msg": "Q 丢出物品以使用"
+}
