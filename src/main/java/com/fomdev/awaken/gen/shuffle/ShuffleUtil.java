@@ -177,7 +177,7 @@ public class ShuffleUtil
         Arrays.stream(alignments).forEach(align -> NBTUtil.putEnchantmentAlignment(stack, align));
         Arrays.stream(defaultAspects).forEach(aspect -> NBTUtil.putEnchantmentAspect(stack, aspect));
 
-        shuffleAttributes(random, getSlot(stack), random.nextInt(6) / 5).forEach(attr -> applyAttribute(stack, attr));
+//        shuffleAttributes(random, getSlot(stack), random.nextInt(6) / 5).forEach(attr -> applyAttribute(stack, attr));
     }
 
     public static void shuffleForItemStackHardcore(
@@ -207,6 +207,7 @@ public class ShuffleUtil
     private static List<Util.AttributeHolder> shuffleAttributes(
             Random random,
             EquipmentSlot slot,
+            double diff,
             int atMost
     )
     {
@@ -215,7 +216,7 @@ public class ShuffleUtil
 
         for (int i = 0; i < atMost; i++)
         {
-            SetAttribute attribute = AttributeManager.shuffle(slot, random);
+            SetAttribute attribute = Util.weightedShuffle(random, diff, AttributeManager.getAttributes(slot));
             if (attribute == null)
                 continue;
 
